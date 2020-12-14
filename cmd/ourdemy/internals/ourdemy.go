@@ -18,11 +18,19 @@ type Config struct {
 	DbName     string
 }
 
-func serverInit(config *Config) (*gin.Engine, error) {
-	//init DB here
+func dbInit(config *Config) error {
 	uri := fmt.Sprintf("mongodb://%s:%s@%s", config.DbUsername, config.DbPassword, config.DbUrl)
 	fmt.Println(uri)
 	err := mgm.SetDefaultConfig(nil, config.DbName, options.Client().ApplyURI(uri))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func serverInit(config *Config) (*gin.Engine, error) {
+	//init DB here
+	err := dbInit(config)
 	if err != nil {
 		return nil, err
 	}
