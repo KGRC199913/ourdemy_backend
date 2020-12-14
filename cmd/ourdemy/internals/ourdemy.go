@@ -3,32 +3,23 @@ package internals
 import (
 	"fmt"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
+	route "github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/routes"
+	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
 	"github.com/gin-gonic/gin"
-	"github.com/kamva/mgm/v3"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"net/http"
 )
 
-type Config struct {
-	Port       int32
-	DbUsername string
-	DbPassword string
-	DbUrl      string
-	DbName     string
+func dbInit(config *ultis.Config) error {
+	//uri := fmt.Sprintf("mongodb://%s:%s@%s", config.DbUsername, config.DbPassword, config.DbUrl)
+	//fmt.Println(uri)
+	//err := mgm.SetDefaultConfig(nil, config.DbName, options.Client().ApplyURI(uri))
+	//if err != nil {
+	//	return err
+	//}
+
+	return models.InitDb(config)
 }
 
-func dbInit(config *Config) error {
-	uri := fmt.Sprintf("mongodb://%s:%s@%s", config.DbUsername, config.DbPassword, config.DbUrl)
-	fmt.Println(uri)
-	err := mgm.SetDefaultConfig(nil, config.DbName, options.Client().ApplyURI(uri))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func serverInit(config *Config) (*gin.Engine, error) {
+func serverInit(config *ultis.Config) (*gin.Engine, error) {
 	//init DB here
 	err := dbInit(config)
 	if err != nil {
@@ -45,39 +36,19 @@ func serverInit(config *Config) (*gin.Engine, error) {
 	return r, nil
 }
 
-func Run(config *Config) error {
+func routing(r *gin.Engine) {
+	route.TestRoutes(r)
+	route.CategoryRoutes(r)
+	route.AdminRoutes(r)
+}
+
+func Run(config *ultis.Config) error {
 	r, err := serverInit(config)
 	if err != nil {
 		panic(err)
 	}
 
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, "OK!")
-	})
-
-	r.GET("/test", func(c *gin.Context) {
-		testUser := models.NewUser("ABC", "ABC@Meow.com", "123")
-		err := mgm.Coll(testUser).Create(testUser)
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-		} else {
-			c.JSON(http.StatusOK, "ok!")
-		}
-	})
-
-	r.GET("/testRes", func(c *gin.Context) {
-		user := &models.User{}
-		coll := mgm.Coll(user)
-
-		err := coll.First(bson.M{"fullname": "ABC"}, user)
-		if err != nil {
-			fmt.Println(err)
-			c.JSON(http.StatusInternalServerError, "Err")
-		} else {
-			c.JSON(http.StatusOK, user)
-		}
-	})
+	routing(r)
 
 	err = r.Run(fmt.Sprintf(":%d", config.Port))
 	if err != nil {

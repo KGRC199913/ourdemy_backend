@@ -2,10 +2,11 @@ package main
 
 import (
 	app "github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals"
+	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
 )
 
 func main() {
-	config := app.Config{
+	config := ultis.Config{
 		Port:       8080,
 		DbUsername: "admin",
 		DbPassword: "root",
