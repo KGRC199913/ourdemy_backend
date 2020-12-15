@@ -6,13 +6,14 @@ import (
 )
 
 func main() {
-	config := ultis.Config{
-		Port:       8080,
-		DbUsername: "admin",
-		DbPassword: "root",
-		DbUrl:      "localhost:27017",
-		DbName:     "ourdemy",
-	}
+	//config := ultis.Config{
+	//	Port:       8080,
+	//	DbUsername: "admin",
+	//	DbPassword: "root",
+	//	DbUrl:      "localhost:27017",
+	//	DbName:     "ourdemy",
+	//}
 
-	_ = app.Run(&config)
+	config, _ := ultis.LoadConfigFile()
+	_ = app.Run(config)
 }

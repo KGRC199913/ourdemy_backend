@@ -9,9 +9,9 @@ import (
 )
 
 func dbInit(config *ultis.Config) error {
-	//uri := fmt.Sprintf("mongodb://%s:%s@%s", config.DbUsername, config.DbPassword, config.DbUrl)
+	//uri := fmt.Sprintf("mongodb://%s:%s@%s", config.json.DbUsername, config.json.DbPassword, config.json.DbUrl)
 	//fmt.Println(uri)
-	//err := mgm.SetDefaultConfig(nil, config.DbName, options.Client().ApplyURI(uri))
+	//err := mgm.SetDefaultConfig(nil, config.json.DbName, options.Client().ApplyURI(uri))
 	//if err != nil {
 	//	return err
 	//}
