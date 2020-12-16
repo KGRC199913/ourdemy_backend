@@ -27,7 +27,7 @@ func TestRoutes(route *gin.Engine) {
 		testRoutesGroup.GET("/get", func(c *gin.Context) {
 			user := &models.User{}
 
-			err := user.FindByName("ABC")
+			err := user.FindByUsername("ABC")
 			if err != nil {
 				fmt.Println(err)
 				c.JSON(http.StatusInternalServerError, "Err")
