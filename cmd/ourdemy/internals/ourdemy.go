@@ -40,6 +40,7 @@ func routing(r *gin.Engine) {
 	route.TestRoutes(r)
 	route.CategoryRoutes(r)
 	route.CourseRoutes(r)
+	route.LecturerRoutes(r)
 	route.AdminRoutes(r)
 }
 
