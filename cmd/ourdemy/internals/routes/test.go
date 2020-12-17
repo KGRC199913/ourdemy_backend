@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -34,6 +35,10 @@ func TestRoutes(route *gin.Engine) {
 			} else {
 				c.JSON(http.StatusOK, user)
 			}
+		})
+
+		testRoutesGroup.GET("/testAuth", middlewares.Authenticate, func(c *gin.Context) {
+			c.JSON(http.StatusOK, "Authed")
 		})
 	}
 }
