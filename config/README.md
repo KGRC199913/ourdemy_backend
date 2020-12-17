@@ -6,7 +6,8 @@
   "DbUsername": "admin",
   "DbPassword": "root",
   "DbUrl": "localhost:27017",
-  "DbName": "ourdemy"
+  "DbName": "ourdemy",
+  "Secret": "XiaoXiao"
 }
 ```
 

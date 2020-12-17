@@ -42,6 +42,7 @@ func routing(r *gin.Engine) {
 	route.CourseRoutes(r)
 	route.LecturerRoutes(r)
 	route.AdminRoutes(r)
+	route.UserRoutes(r)
 }
 
 func Run(config *ultis.Config) error {

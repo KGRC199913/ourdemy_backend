@@ -5,6 +5,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+var secret string
+
 type Config struct {
 	Port       int32
 	DbUsername string
@@ -33,6 +35,6 @@ func LoadConfigFile() (*Config, error) {
 	c.DbPassword = viper.GetString("DbPassword")
 	c.DbUrl = viper.GetString("DbUrl")
 	c.DbName = viper.GetString("DbName")
-
+	secret = viper.GetString("secret")
 	return c, nil
 }
