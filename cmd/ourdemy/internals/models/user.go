@@ -46,6 +46,10 @@ func (u *User) Save() error {
 	return err
 }
 
+func (u *User) FindById(oid primitive.ObjectID) error {
+	return db.Collection(u.collName()).Find(ctx, bson.M{"_id": oid}).One(u)
+}
+
 func (u *User) FindByUsername(username string) error {
 	return db.Collection(u.collName()).Find(ctx, bson.M{"username": username}).One(u)
 }
@@ -158,6 +162,17 @@ func (u *User) UpdateOtp(username string) (*string, error) {
 			"otp":              newOtp,
 			"last_otp_updated": time.Now(),
 			"otp_exp":          time.Now().Add(time.Minute * 30),
+		},
+	})
+}
+
+func (u *User) UpdateProfile(newFullname string, newEmail string) error {
+	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
+		"_id": u.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"fullname": newFullname,
+			"email":    newEmail,
 		},
 	})
 }
