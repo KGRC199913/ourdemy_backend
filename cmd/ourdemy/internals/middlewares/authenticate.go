@@ -84,3 +84,7 @@ func Authenticate(c *gin.Context) {
 	c.Set("id", userClaims.Id)
 	c.Next()
 }
+
+func AdminAuthenticate(c *gin.Context) {
+	c.Next()
+}

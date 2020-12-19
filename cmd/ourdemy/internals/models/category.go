@@ -1,14 +1,16 @@
 package models
 
 import (
+	"errors"
+	"fmt"
 	"github.com/qiniu/qmgo/field"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Category struct {
-	field.DefaultField `bson:",inline"`
-	Name               string `json:"name" bson:"name"`
+	field.DefaultField `bson:",inline" json:"-"`
+	Name               string `json:"name" bson:"name" binding:"required"`
 }
 
 func (Category) collName() string {
@@ -16,9 +18,9 @@ func (Category) collName() string {
 }
 
 type SubCategory struct {
-	field.DefaultField `bson:",inline"`
-	Name               string `json:"name" bson:"name"`
-	ParentCategoryId   string `json:"parentCategoryId" bson:"parentCategoryId"`
+	field.DefaultField `bson:",inline" json:"-"`
+	Name               string             `json:"name" bson:"name"`
+	ParentCategoryId   primitive.ObjectID `json:"parentCategoryId" bson:"parentCategoryId"`
 }
 
 func (SubCategory) collName() string {
@@ -45,10 +47,8 @@ func FindCategoryByName(name string) (cat *Category, err error) {
 	return cat, nil
 }
 
-func FindCategoryById(id string) (cat *Category, err error) {
+func FindCategoryById(oid primitive.ObjectID) (cat *Category, err error) {
 	cat = &Category{}
-	var oid primitive.ObjectID
-	oid, err = primitive.ObjectIDFromHex(id)
 	err = db.Collection(cat.collName()).Find(ctx, bson.M{"_id": oid}).One(cat)
 	if err != nil {
 		return nil, err
@@ -64,10 +64,26 @@ func GetAllCategory() (cats []Category, err error) {
 	return cats, nil
 }
 
-func NewSubCategory(name string, parentCatId string) (*SubCategory, error) {
+// HOOKS
+func (cat *Category) BeforeInsert() error {
+	_, err := FindCategoryByName(cat.Name)
+	if err == nil {
+		return errors.New(fmt.Sprintf("duplicate category with name: %s", cat.Name))
+	}
+	return nil
+}
+
+// SUBCAT
+
+func CreateSubCategory(name string, catName string) (*SubCategory, error) {
+	cat, err := FindCategoryByName(catName)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("category with name: %s not found", catName))
+	}
+
 	return &SubCategory{
 		Name:             name,
-		ParentCategoryId: parentCatId,
+		ParentCategoryId: cat.Id,
 	}, nil
 }
 
@@ -80,7 +96,7 @@ func (subcat *SubCategory) Save() error {
 func (subcat *SubCategory) BeforeInsert() error {
 	_, err := FindCategoryById(subcat.ParentCategoryId)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("parent category not found with id: %s", subcat.ParentCategoryId))
 	}
 	return nil
 }

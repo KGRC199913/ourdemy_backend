@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
@@ -166,9 +165,6 @@ func UserRoutes(route *gin.Engine) {
 				})
 				return
 			}
-
-			fmt.Println(curUpdateUser.Fullname)
-			fmt.Println(curUpdateUser.Email)
 
 			curUser := models.User{}
 

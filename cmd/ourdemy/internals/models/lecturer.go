@@ -5,6 +5,7 @@ import (
 	scrypt "github.com/elithrar/simple-scrypt"
 	"github.com/qiniu/qmgo/field"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Lecturer struct {
@@ -33,6 +34,10 @@ func (lec *Lecturer) Save() error {
 
 func (lec *Lecturer) FindByName(name string) error {
 	return db.Collection(lec.collName()).Find(ctx, bson.M{"fullname": name}).One(lec)
+}
+
+func (lec *Lecturer) FindById(oid primitive.ObjectID) error {
+	return db.Collection(lec.collName()).Find(ctx, bson.M{"_id": oid}).One(lec)
 }
 
 //Hooks
