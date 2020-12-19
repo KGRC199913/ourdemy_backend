@@ -1,10 +1,13 @@
 package routes
 
 import (
+	"fmt"
+	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
 	scrypt "github.com/elithrar/simple-scrypt"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 )
 
@@ -148,6 +151,44 @@ func UserRoutes(route *gin.Engine) {
 			c.JSON(http.StatusOK, gin.H{
 				"accessToken":  accessToken,
 				"refreshToken": curUser.RefreshToken,
+			})
+		})
+
+		userRoutesGroup.POST("/update", middlewares.Authenticate, func(c *gin.Context) {
+			type userUpdate struct {
+				Fullname string `json:"fullname" binding:"required"`
+				Email    string `json:"email" binding:"required"`
+			}
+			var curUpdateUser userUpdate
+			if err := c.ShouldBind(&curUpdateUser); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			fmt.Println(curUpdateUser.Fullname)
+			fmt.Println(curUpdateUser.Email)
+
+			curUser := models.User{}
+
+			curUserId, _ := c.Get("id")
+			if err := curUser.FindById(curUserId.(primitive.ObjectID)); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			if err := curUser.UpdateProfile(curUpdateUser.Fullname, curUpdateUser.Email); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Update successful.",
 			})
 		})
 	}
