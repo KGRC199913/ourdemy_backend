@@ -27,33 +27,17 @@ func (SubCategory) collName() string {
 	return "subcategories"
 }
 
-func NewCategory(name string) (*Category, error) {
-	return &Category{
-		Name: name,
-	}, nil
-}
-
 func (cat *Category) Save() error {
 	_, err := db.Collection(cat.collName()).InsertOne(ctx, cat)
 	return err
 }
 
-func FindCategoryByName(name string) (cat *Category, err error) {
-	cat = &Category{}
-	err = db.Collection(cat.collName()).Find(ctx, bson.M{"name": name}).One(cat)
-	if err != nil {
-		return nil, err
-	}
-	return cat, nil
+func (cat *Category) FindCategoryByName(name string) error {
+	return db.Collection(cat.collName()).Find(ctx, bson.M{"name": name}).One(cat)
 }
 
-func FindCategoryById(oid primitive.ObjectID) (cat *Category, err error) {
-	cat = &Category{}
-	err = db.Collection(cat.collName()).Find(ctx, bson.M{"_id": oid}).One(cat)
-	if err != nil {
-		return nil, err
-	}
-	return cat, nil
+func (cat *Category) FindCategoryById(oid primitive.ObjectID) error {
+	return db.Collection(cat.collName()).Find(ctx, bson.M{"_id": oid}).One(cat)
 }
 
 func GetAllCategory() (cats []Category, err error) {
@@ -66,7 +50,8 @@ func GetAllCategory() (cats []Category, err error) {
 
 // HOOKS
 func (cat *Category) BeforeInsert() error {
-	_, err := FindCategoryByName(cat.Name)
+	var dupCat Category
+	err := dupCat.FindCategoryByName(cat.Name)
 	if err == nil {
 		return errors.New(fmt.Sprintf("duplicate category with name: %s", cat.Name))
 	}
@@ -76,7 +61,8 @@ func (cat *Category) BeforeInsert() error {
 // SUBCAT
 
 func CreateSubCategory(name string, catName string) (*SubCategory, error) {
-	cat, err := FindCategoryByName(catName)
+	var cat Category
+	err := cat.FindCategoryByName(catName)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("category with name: %s not found", catName))
 	}
@@ -92,11 +78,21 @@ func (subcat *SubCategory) Save() error {
 	return err
 }
 
+func (subcat *SubCategory) FindByName(name string) error {
+	return db.Collection(subcat.collName()).Find(ctx, bson.M{"name": name}).One(subcat)
+}
+
 //Hooks
 func (subcat *SubCategory) BeforeInsert() error {
-	_, err := FindCategoryById(subcat.ParentCategoryId)
+	var cat Category
+	err := cat.FindCategoryById(subcat.ParentCategoryId)
 	if err != nil {
 		return errors.New(fmt.Sprintf("parent category not found with id: %s", subcat.ParentCategoryId))
 	}
+	var subcatDup SubCategory
+	if err := subcatDup.FindByName(subcat.Name); err != nil {
+		return errors.New(fmt.Sprintf("duplicate subcat: %s ", subcat.Name))
+	}
+
 	return nil
 }

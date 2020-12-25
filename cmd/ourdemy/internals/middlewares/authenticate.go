@@ -67,6 +67,7 @@ func Authenticate(c *gin.Context) {
 			return
 		}
 
+		c.Set("id", userClaims.Id)
 		c.Next()
 		return
 	}
@@ -82,9 +83,20 @@ func Authenticate(c *gin.Context) {
 	}
 
 	c.Set("id", userClaims.Id)
+	c.Set("is_lec", userClaims.IsLec)
 	c.Next()
 }
 
 func AdminAuthenticate(c *gin.Context) {
+	c.Next()
+}
+
+func LecturerAuthenticate(c *gin.Context) {
+	if !c.GetBool("is_lec") {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "lecturer unauthorized",
+		})
+		c.Abort()
+	}
 	c.Next()
 }

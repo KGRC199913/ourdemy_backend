@@ -24,6 +24,7 @@ type User struct {
 	RecoverCode            string    `json:"-" bson:"recover"`
 	RecoverCodeExpiredTime time.Time `json:"-" bson:"rec_exp"`
 	RefreshToken           string    `json:"-" bson:"rf"`
+	IsLec                  bool      `json:"-" bson:"is_lec"`
 }
 
 func (User) collName() string {
@@ -74,7 +75,7 @@ func (u *User) GenerateRfToken() error {
 }
 
 func (u *User) UpdateTokens() (*string, *string, error) {
-	newAccessToken, err := ultis.CreateToken(u.Id)
+	newAccessToken, err := ultis.CreateToken(u.Id, u.IsLec)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -173,6 +174,16 @@ func (u *User) UpdateProfile(newFullname string, newEmail string) error {
 		"$set": bson.M{
 			"fullname": newFullname,
 			"email":    newEmail,
+		},
+	})
+}
+
+func (u *User) UpdateLecturerStatus(isLec bool) error {
+	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
+		"_id": u.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"is_lec": isLec,
 		},
 	})
 }

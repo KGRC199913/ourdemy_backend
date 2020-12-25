@@ -8,13 +8,15 @@ import (
 )
 
 type UserClaims struct {
-	Id primitive.ObjectID
+	Id    primitive.ObjectID
+	IsLec bool
 	jwt.StandardClaims
 }
 
-func CreateToken(oid primitive.ObjectID) (string, error) {
+func CreateToken(oid primitive.ObjectID, isLec bool) (string, error) {
 	userClaims := UserClaims{
-		Id: oid,
+		Id:    oid,
+		IsLec: isLec,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 		},
