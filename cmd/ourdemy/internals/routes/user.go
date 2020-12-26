@@ -105,8 +105,8 @@ func UserRoutes(route *gin.Engine) {
 
 		userRoutesGroup.POST("/signin", func(c *gin.Context) {
 			type signinUser struct {
-				Username string `json:"username"`
-				Password string `json:"pass"`
+				Username string `json:"username" binding:"required"`
+				Password string `json:"password" binding:"required"`
 			}
 			var curSigninUser signinUser
 			if err := c.ShouldBind(&curSigninUser); err != nil {
