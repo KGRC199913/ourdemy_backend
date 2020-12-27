@@ -139,7 +139,7 @@ func UserRoutes(route *gin.Engine) {
 				return
 			}
 
-			accessToken, err := ultis.CreateToken(curUser.Id)
+			accessToken, err := ultis.CreateToken(curUser.Id, curUser.IsLec)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": err.Error(),

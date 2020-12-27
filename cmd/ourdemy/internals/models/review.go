@@ -35,6 +35,19 @@ func FindByCourseId(cid primitive.ObjectID) (revs []Review, err error) {
 	return revs, nil
 }
 
+func CalcAvgScore(cid primitive.ObjectID) (float32, error) {
+	reviews, err := FindByCourseId(cid)
+	if err != nil {
+		return 0.0, err
+	}
+
+	var totalScore float32
+	for _, review := range reviews {
+		totalScore += review.Score
+	}
+	return totalScore / float32(len(reviews)), nil
+}
+
 func (r *Review) UpdateReview(newContent string, newScore float32) error {
 	return db.Collection(r.collName()).UpdateOne(ctx, bson.M{
 		"_id": r.Id,

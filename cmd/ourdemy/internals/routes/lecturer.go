@@ -1,32 +1,43 @@
 package routes
 
 import (
+	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 )
 
 func LecturerRoutes(route *gin.Engine) {
-	lecRoutesGroup := route.Group("/lecturers")
+	lecRoutesGroup := route.Group("/lecturers", middlewares.Authenticate)
 	{
-		lecRoutesGroup.POST("/create", func(c *gin.Context) {
-			var lecturer models.Lecturer
-			if err := c.ShouldBind(&lecturer); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
+		lecRoutesGroup.GET("/promote", func(c *gin.Context) {
+			id, ok := c.Get("id")
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Id not found",
+				})
+				return
+			}
+
+			appr := models.Approve{
+				LecId: id.(primitive.ObjectID),
+			}
+			if err := appr.Save(); err != nil {
+				c.JSON(http.StatusNotAcceptable, gin.H{
 					"error": err.Error(),
 				})
 				return
 			}
 
-			if err := lecturer.Save(); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": err.Error(),
-				})
-				return
-			}
-
-			c.JSON(http.StatusOK, lecturer)
+			c.JSON(http.StatusOK, gin.H{
+				"message": "register success",
+			})
 		})
+		authLecRoutesGroup := lecRoutesGroup.Group("/", middlewares.LecturerAuthenticate)
+		{
+			authLecRoutesGroup.GET("/")
+		}
 	}
 
 }

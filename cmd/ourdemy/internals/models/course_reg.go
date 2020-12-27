@@ -1,16 +1,19 @@
 package models
 
-import "github.com/qiniu/qmgo/field"
+import (
+	"github.com/qiniu/qmgo/field"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type CourseRegister struct {
 	field.DefaultField `bson:",inline"`
-	UserId             string `json:"uid" bson:"uid"`
-	CourseId           string `json:"cid" bson:"cid"`
+	UserId             primitive.ObjectID   `json:"uid" bson:"uid"`
+	CourseId           []primitive.ObjectID `json:"cid" bson:"cid"`
 }
 
 type TimeMark struct {
 	field.DefaultField `bson:",inline"`
-	UserId             string `json:"uid" bson:"uid"`
-	VideoId            string `json:"vid" bson:"vid"`
-	CurTime            int64  `json:"cur_time" bson:"cur_time"`
+	UserId             primitive.ObjectID `json:"uid" bson:"uid"`
+	VideoId            primitive.ObjectID `json:"vid" bson:"vid"`
+	CurTime            int64              `json:"cur_time" bson:"cur_time"`
 }
