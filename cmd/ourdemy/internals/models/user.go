@@ -105,15 +105,6 @@ func (u *User) GenerateOtp() error {
 	//END FAKE OTP
 	//END GEN OTP
 
-	//return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
-	//	"_id": u.Id,
-	//}, bson.M{
-	//	"$set": bson.M{
-	//		"otp":              u.CurOtp,
-	//		"last_otp_updated": u.LastOtpUpdated,
-	//		"otp_exp":          u.CurOtpExpiredTime,
-	//	},
-	//})
 	return nil
 }
 

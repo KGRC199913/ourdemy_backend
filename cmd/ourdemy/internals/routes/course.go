@@ -3,10 +3,12 @@ package routes
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/gin-gonic/gin"
 	"github.com/oliamb/cutter"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -94,5 +96,36 @@ func CourseRoutes(route *gin.Engine) {
 			}
 			c.JSON(http.StatusOK, course)
 		})
+		courseRoutesGroup.GET("/simple/:cid", func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("course id invalid"),
+				})
+				return
+			}
+
+			var course models.Course
+			if err := course.FindById(cid); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			simple, err := course.ConvertToSimpleCourse()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, simple)
+		})
+		courseRoutesGroup.GET("/full/:cid", func(c *gin.Context) {
+
+		})
+
 	}
 }
