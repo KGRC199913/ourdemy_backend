@@ -199,3 +199,11 @@ func getAllChapterByCourseId(cid primitive.ObjectID) (cc []CourseChapter, err er
 func (c *Course) BeforeInsert() error {
 	return nil
 }
+
+func (c *Course) AfterInsert() error {
+	rgC := regCourse{
+		CourseId: c.Id,
+		JoinInfo: []courseJoinInfo{},
+	}
+	return rgC.Save()
+}
