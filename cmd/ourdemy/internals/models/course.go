@@ -18,7 +18,7 @@ type Course struct {
 	FullDesc           string             `json:"full_desc" bson:"full_desc"  binding:"required"`
 	Fee                float64            `json:"fee" bson:"fee" binding:"required"`
 	Discount           float64            `json:"discount" bson:"discount" binding:"required"`
-	ChapterCount       int                `json:"chapter_count" bson:"chapter_count" binding:"required"`
+	ChapterCount       int                `json:"chapter_count" bson:"chapter_count"`
 	IsDone             bool               `json:"is_done" bson:"is_done"`
 	RegCount           int                `json:"reg_count" bson:"reg_count"`
 }
@@ -101,6 +101,16 @@ func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
 	var res []Course
 	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"lid": lid}).All(res)
 	return res, err
+}
+
+func (c *Course) UpdateCourseStatus(isDone bool) error {
+	return db.Collection(c.collName()).UpdateOne(ctx, bson.M{
+		"_id": c.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"is_done": isDone,
+		},
+	})
 }
 
 func (c *Course) FindByCatId(cid primitive.ObjectID) ([]Course, error) {

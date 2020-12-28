@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"time"
 )
 
 var client *qmgo.Client
@@ -16,8 +17,9 @@ var ctx context.Context
 
 func InitDb(config *ultis.Config) error {
 	uri := fmt.Sprintf("mongodb://%s:%s@%s", config.DbUsername, config.DbPassword, config.DbUrl)
-	ctx = context.Background()
-
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	// Set client options
 	clientOptions := options.Client().ApplyURI(uri)
 

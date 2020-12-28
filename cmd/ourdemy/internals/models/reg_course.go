@@ -47,8 +47,8 @@ func AddUserToCourseInfo(uid primitive.ObjectID, cid primitive.ObjectID) error {
 }
 
 func (rgC *regCourse) RemoveUserFromCourseInfo(uid primitive.ObjectID) error {
-	index := indexOfUid(uid, rgC.JoinInfo)
-	rgC.JoinInfo = removeUidFromIndex(rgC.JoinInfo, index)
+	index := rgcIndexOfUid(uid, rgC.JoinInfo)
+	rgC.JoinInfo = rgcRemoveUidFromIndex(rgC.JoinInfo, index)
 
 	return db.Collection(rgC.collName()).UpdateOne(ctx, bson.M{
 		"_id": rgC.Id,
@@ -65,11 +65,11 @@ func (rgC *regCourse) FindByCourseId(cid primitive.ObjectID) error {
 
 // Hooks
 func (rgC *regCourse) BeforeInsert() error {
-	rgC.JoinInfo = unique(rgC.JoinInfo)
+	rgC.JoinInfo = rgcUnique(rgC.JoinInfo)
 	return nil
 }
 
-func unique(data []courseJoinInfo) []courseJoinInfo {
+func rgcUnique(data []courseJoinInfo) []courseJoinInfo {
 	keys := make(map[primitive.ObjectID]bool)
 	var list []courseJoinInfo
 	for _, entry := range data {
@@ -81,12 +81,12 @@ func unique(data []courseJoinInfo) []courseJoinInfo {
 	return list
 }
 
-func removeUidFromIndex(s []courseJoinInfo, index int) []courseJoinInfo {
+func rgcRemoveUidFromIndex(s []courseJoinInfo, index int) []courseJoinInfo {
 	s[index] = s[len(s)-1]
 	return s[:len(s)-1]
 }
 
-func indexOfUid(uid primitive.ObjectID, data []courseJoinInfo) (index int) {
+func rgcIndexOfUid(uid primitive.ObjectID, data []courseJoinInfo) (index int) {
 	for index, val := range data {
 		if val.UserId == uid {
 			return index

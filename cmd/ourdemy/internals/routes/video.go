@@ -27,5 +27,4 @@ func videoRoutes(route *gin.Engine) {
 			_, _ = io.Copy(target, f)
 		})
 	}
-
 }
