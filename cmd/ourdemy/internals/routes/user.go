@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"errors"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
@@ -185,6 +186,96 @@ func UserRoutes(route *gin.Engine) {
 
 			c.JSON(http.StatusOK, gin.H{
 				"message": "Update successful.",
+			})
+		})
+
+		userRoutesGroup.POST("/fav/:cid", func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("course id invalid"),
+				})
+				return
+			}
+
+			var course models.Course
+			if err := course.FindById(cid); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			uid, ok := c.Get("id")
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "id missing? wtf",
+				})
+				return
+			}
+
+			var wl models.WatchList
+			if err := wl.FindByUid(uid.(primitive.ObjectID)); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			if err := wl.AddCourseToWatchList(cid); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "added to fav list",
+			})
+		})
+
+		userRoutesGroup.POST("/unfav/:cid", func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("course id invalid"),
+				})
+				return
+			}
+
+			var course models.Course
+			if err := course.FindById(cid); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			uid, ok := c.Get("id")
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "id missing? wtf",
+				})
+				return
+			}
+
+			var wl models.WatchList
+			if err := wl.FindByUid(uid.(primitive.ObjectID)); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			if err := wl.RemoveCourseFromWatchList(cid); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "added to fav list",
 			})
 		})
 	}
