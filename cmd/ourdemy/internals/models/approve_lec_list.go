@@ -9,7 +9,7 @@ import (
 
 type Approve struct {
 	field.DefaultField `json:"-" bson:",inline"`
-	LecId              primitive.ObjectID `json:"lid" bson:"username"`
+	LecId              primitive.ObjectID `json:"lid" bson:"lid"`
 }
 
 func (Approve) collName() string {
@@ -21,8 +21,10 @@ func (a *Approve) Save() error {
 	return err
 }
 
-func GetAllApprovingLecturers() (apprs []Approve, err error) {
-	err = db.Collection(Category{}.collName()).Find(ctx, bson.M{}).All(&apprs)
+func GetAllApprovingLecturers() ([]Approve, error) {
+	var apprs []Approve
+	err := db.Collection(Approve{}.collName()).Find(ctx, bson.M{}).All(&apprs)
+
 	if err != nil {
 		return nil, err
 	}
