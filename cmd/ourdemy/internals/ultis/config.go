@@ -36,5 +36,7 @@ func LoadConfigFile() (*Config, error) {
 	c.DbUrl = viper.GetString("DbUrl")
 	c.DbName = viper.GetString("DbName")
 	secret = viper.GetString("secret")
+	fmt.Println("loaded config file")
+	fmt.Println(c)
 	return c, nil
 }

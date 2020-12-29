@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"github.com/qiniu/qmgo/field"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -20,14 +21,13 @@ type Course struct {
 	Discount           float64            `json:"discount" bson:"discount" binding:"required"`
 	ChapterCount       int                `json:"chapter_count" bson:"chapter_count"`
 	IsDone             bool               `json:"is_done" bson:"is_done"`
-	RegCount           int                `json:"reg_count" bson:"reg_count"`
 }
 
 type CourseChapter struct {
 	field.DefaultField `bson:",inline"`
-	CourseId           string `json:"cid" bson:"cid"`
-	Title              string `json:"title" bson:"title"`
-	Previewable        bool   `json:"previewable" bson:"previewable"`
+	CourseId           primitive.ObjectID `json:"cid" bson:"cid" binding:"required"`
+	Title              string             `json:"title" bson:"title" binding:"required"`
+	Previewable        bool               `json:"previewable" bson:"previewable" binding:"required"`
 }
 
 type Video struct {
@@ -93,8 +93,17 @@ func (c *Course) Save() error {
 	return err
 }
 
+func (cc *CourseChapter) Save() error {
+	_, err := db.Collection(cc.collName()).InsertOne(ctx, cc)
+	return err
+}
+
 func (c *Course) FindById(oid primitive.ObjectID) error {
 	return db.Collection(c.collName()).Find(ctx, bson.M{"_id": oid}).One(c)
+}
+
+func (cc *CourseChapter) FindById(ccid primitive.ObjectID) error {
+	return db.Collection(cc.collName()).Find(ctx, bson.M{"_id": ccid}).One(cc)
 }
 
 func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
@@ -109,6 +118,16 @@ func (c *Course) UpdateCourseStatus(isDone bool) error {
 	}, bson.M{
 		"$set": bson.M{
 			"is_done": isDone,
+		},
+	})
+}
+
+func (c *Course) UpdateChapterCount(count int) error {
+	return db.Collection(c.collName()).UpdateOne(ctx, bson.M{
+		"_id": c.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"chapter_count": count,
 		},
 	})
 }
@@ -205,7 +224,19 @@ func getAllChapterByCourseId(cid primitive.ObjectID) (cc []CourseChapter, err er
 	return cc, nil
 }
 
-// Hooks
+func (c *Course) Remove() error {
+	return db.Collection(c.collName()).Remove(ctx, bson.M{
+		"_id": c.Id,
+	})
+}
+
+func (cc *CourseChapter) Remove() error {
+	return db.Collection(cc.collName()).Remove(ctx, bson.M{
+		"_id": cc.Id,
+	})
+}
+
+// Hooks c
 func (c *Course) BeforeInsert() error {
 	return nil
 }
@@ -216,4 +247,31 @@ func (c *Course) AfterInsert() error {
 		JoinInfo: []courseJoinInfo{},
 	}
 	return rgC.Save()
+}
+
+// Hooks cc
+func (cc *CourseChapter) BeforeInsert() error {
+	var course Course
+	if err := course.FindById(cc.CourseId); err != nil {
+		return errors.New("course not exist")
+	}
+
+	if err := course.UpdateChapterCount(course.ChapterCount + 1); err != nil {
+		return errors.New("update chapter count failed: " + err.Error())
+	}
+
+	return nil
+}
+
+func (cc *CourseChapter) AfterRemove() error {
+	var course Course
+	if err := course.FindById(cc.CourseId); err != nil {
+		return errors.New("course not exist")
+	}
+
+	if err := course.UpdateChapterCount(course.ChapterCount - 1); err != nil {
+		return errors.New("update chapter count failed: " + err.Error())
+	}
+
+	return nil
 }
