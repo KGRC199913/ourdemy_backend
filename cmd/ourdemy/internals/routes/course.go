@@ -291,6 +291,69 @@ func CourseRoutes(route *gin.Engine) {
 						"message": "marked as undone",
 					})
 				})
+				lecturerCourseRoutesGroup.POST("/chapter", func(c *gin.Context) {
+					var chapter models.CourseChapter
+					if err := c.ShouldBind(&chapter); err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					if err := chapter.Save(); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, chapter)
+				})
+				lecturerCourseRoutesGroup.POST("/chapter/:ccid", func(c *gin.Context) {
+					var chapter models.CourseChapter
+					if err := c.ShouldBind(&chapter); err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					if err := chapter.Save(); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, chapter)
+				})
+				lecturerCourseRoutesGroup.DELETE("/chapter/:ccid", func(c *gin.Context) {
+					ccid, err := primitive.ObjectIDFromHex(c.Param("ccid"))
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": errors.New("course chapter id invalid"),
+						})
+						return
+					}
+
+					var chapter models.CourseChapter
+					if err := chapter.FindById(ccid); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					if err := chapter.Remove(); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, chapter)
+				})
+
 			}
 
 		}

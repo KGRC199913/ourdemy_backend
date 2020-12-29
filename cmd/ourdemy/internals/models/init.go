@@ -16,7 +16,9 @@ var db *qmgo.Database
 var ctx context.Context
 
 func InitDb(config *ultis.Config) error {
-	uri := fmt.Sprintf("mongodb://%s:%s@%s", config.DbUsername, config.DbPassword, config.DbUrl)
+	uri := fmt.Sprintf("mongodb://%s:%s@%s/%s?authSource=admin", config.DbUsername, config.DbPassword, config.DbUrl, config.DbName)
+	fmt.Println("connecting to db")
+	fmt.Printf("uri: %s\n", uri)
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -40,13 +42,12 @@ func InitDb(config *ultis.Config) error {
 		return err
 	}
 
+	ctx = context.Background()
 	client, err = qmgo.NewClient(ctx, &qmgo.Config{Uri: uri})
 	if err != nil {
 		return err
 	}
 	db = client.Database(config.DbName)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
