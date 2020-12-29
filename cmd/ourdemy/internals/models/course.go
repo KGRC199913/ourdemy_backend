@@ -14,12 +14,12 @@ type Course struct {
 	LecId              primitive.ObjectID `json:"lid" bson:"lid" form:"lid" binding:"required"`
 	CatId              primitive.ObjectID `json:"cid" bson:"cat_id" form:"cid" binding:"required"`
 	Ava                string             `json:"ava" bson:"ava"`
-	Name               string             `json:"name" bson:"name" form:"name" binding:"required"`
-	ShortDesc          string             `json:"short_desc" bson:"short_desc" form:"short_desc" binding:"required"`
-	FullDesc           string             `json:"full_desc" bson:"full_desc" form:"full_desc" binding:"required"`
-	Fee                float64            `json:"fee" bson:"fee" form:"fee" binding:"required"`
-	Discount           float64            `json:"discount" bson:"discount" form:"discount" binding:"required"`
-	ChapterCount       int                `json:"chapter_count" bson:"chapter_count" form:"chapter_count" binding:"required"`
+	Name               string             `json:"name" bson:"name"  binding:"required"`
+	ShortDesc          string             `json:"short_desc" bson:"short_desc" binding:"required"`
+	FullDesc           string             `json:"full_desc" bson:"full_desc"  binding:"required"`
+	Fee                float64            `json:"fee" bson:"fee" binding:"required"`
+	Discount           float64            `json:"discount" bson:"discount" binding:"required"`
+	ChapterCount       int                `json:"chapter_count" bson:"chapter_count"`
 	IsDone             bool               `json:"is_done" bson:"is_done"`
 }
 
@@ -101,6 +101,16 @@ func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
 	var res []Course
 	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"lid": lid}).All(res)
 	return res, err
+}
+
+func (c *Course) UpdateCourseStatus(isDone bool) error {
+	return db.Collection(c.collName()).UpdateOne(ctx, bson.M{
+		"_id": c.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"is_done": isDone,
+		},
+	})
 }
 
 func (c *Course) FindByCatId(cid primitive.ObjectID) ([]Course, error) {
