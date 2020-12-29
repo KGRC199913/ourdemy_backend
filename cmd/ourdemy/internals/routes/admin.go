@@ -27,11 +27,12 @@ func AdminRoutes(route *gin.Engine) {
 				c.JSON(http.StatusInternalServerError, err.Error())
 				return
 			}
-			if err := appr.FindById(oid); err != nil {
+			if err := appr.FindByLecId(oid); err != nil {
 				c.JSON(http.StatusInternalServerError, err.Error())
 				return
 			}
 			var user models.User
+
 			if err := user.FindById(appr.LecId); err != nil {
 				c.JSON(http.StatusInternalServerError, err.Error())
 				return

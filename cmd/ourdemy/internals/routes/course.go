@@ -106,8 +106,19 @@ func CourseRoutes(route *gin.Engine) {
 			lecturerCourseRoutesGroup := authCourseRoutesGroup.Group("/", middlewares.LecturerAuthenticate)
 			{
 				lecturerCourseRoutesGroup.POST("/create", func(c *gin.Context) {
-					var course models.Course
-					if err := c.ShouldBind(&course); err != nil {
+					type courseCreateInfo struct {
+						LecId        string  `json:"lid" bson:"lid" form:"lid" binding:"required"`
+						CatId        string  `json:"cid" bson:"cat_id" form:"cid" binding:"required"`
+						Name         string  `json:"name" bson:"name" form:"name" binding:"required"`
+						ShortDesc    string  `json:"short_desc" bson:"short_desc" form:"short_desc" binding:"required"`
+						FullDesc     string  `json:"full_desc" bson:"full_desc" form:"full_desc" binding:"required"`
+						Fee          float64 `json:"fee" bson:"fee" form:"fee" binding:"required"`
+						Discount     float64 `json:"discount" bson:"discount" form:"discount"`
+						ChapterCount int     `json:"chapter_count" bson:"chapter_count" form:"chapter_count" binding:"required"`
+					}
+
+					var courseInfo courseCreateInfo
+					if err := c.ShouldBind(&courseInfo); err != nil {
 						c.JSON(http.StatusBadRequest, gin.H{
 							"error": err.Error(),
 						})
@@ -174,14 +185,41 @@ func CourseRoutes(route *gin.Engine) {
 						}
 					}
 
-					course.Ava = base64.StdEncoding.EncodeToString(buff.Bytes())
+					lid, err := primitive.ObjectIDFromHex(courseInfo.LecId)
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					cid, err := primitive.ObjectIDFromHex(courseInfo.CatId)
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					course := models.Course{
+						LecId:        lid,
+						CatId:        cid,
+						Ava:          base64.StdEncoding.EncodeToString(buff.Bytes()),
+						Name:         courseInfo.Name,
+						ShortDesc:    courseInfo.ShortDesc,
+						FullDesc:     courseInfo.FullDesc,
+						Fee:          courseInfo.Fee,
+						Discount:     courseInfo.Discount,
+						ChapterCount: courseInfo.ChapterCount,
+					}
+
 					if err := course.Save(); err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{
 							"error": err.Error(),
 						})
 						return
 					}
-					c.JSON(http.StatusOK, course)
+					c.JSON(http.StatusOK, courseInfo)
 				})
 				lecturerCourseRoutesGroup.POST("/markDone/:cid", func(c *gin.Context) {
 					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))

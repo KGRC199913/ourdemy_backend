@@ -6,12 +6,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"math"
 )
 
 type Course struct {
 	field.DefaultField `bson:",inline"`
-	LecId              primitive.ObjectID `json:"lid" bson:"lid" binding:"required"`
-	CatId              primitive.ObjectID `json:"cat_id" bson:"cat_id" binding:"required"`
+	LecId              primitive.ObjectID `json:"lid" bson:"lid" form:"lid" binding:"required"`
+	CatId              primitive.ObjectID `json:"cid" bson:"cat_id" form:"cid" binding:"required"`
 	Ava                string             `json:"ava" bson:"ava"`
 	Name               string             `json:"name" bson:"name"  binding:"required"`
 	ShortDesc          string             `json:"short_desc" bson:"short_desc" binding:"required"`
@@ -20,7 +21,6 @@ type Course struct {
 	Discount           float64            `json:"discount" bson:"discount" binding:"required"`
 	ChapterCount       int                `json:"chapter_count" bson:"chapter_count"`
 	IsDone             bool               `json:"is_done" bson:"is_done"`
-	RegCount           int                `json:"reg_count" bson:"reg_count"`
 }
 
 type CourseChapter struct {
@@ -135,6 +135,9 @@ func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
 	if err != nil {
 		return nil, err
 	}
+	if math.IsNaN(float64(reviewScore)) {
+		reviewScore = 5.0
+	}
 
 	return &simpleCourse{
 		Id:           c.Id.String(),
@@ -164,6 +167,9 @@ func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
 	reviewScore, err := CalcAvgScore(c.CatId)
 	if err != nil {
 		return nil, err
+	}
+	if math.IsNaN(float64(reviewScore)) {
+		reviewScore = 5.0
 	}
 
 	chapters, err := getAllChapterByCourseId(c.Id)
