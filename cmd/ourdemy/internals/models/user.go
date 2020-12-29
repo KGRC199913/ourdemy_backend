@@ -198,3 +198,12 @@ func (u *User) BeforeInsert() error {
 	u.HPassword = string(hashed)
 	return nil
 }
+
+func (u *User) AfterInsert() error {
+	wl := WatchList{
+		UserId:    u.Id,
+		CoursesId: []primitive.ObjectID{},
+	}
+
+	return wl.Save()
+}

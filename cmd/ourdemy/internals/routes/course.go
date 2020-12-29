@@ -84,7 +84,7 @@ func CourseRoutes(route *gin.Engine) {
 					return
 				}
 
-				suid, ok := c.Get("id")
+				uid, ok := c.Get("id")
 				if !ok {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"error": "id missing? wtf",
@@ -92,7 +92,7 @@ func CourseRoutes(route *gin.Engine) {
 					return
 				}
 
-				if err := models.AddUserToCourseInfo(suid.(primitive.ObjectID), cid); err != nil {
+				if err := models.AddUserToCourseInfo(uid.(primitive.ObjectID), cid); err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"error": err.Error(),
 					})
@@ -221,8 +221,78 @@ func CourseRoutes(route *gin.Engine) {
 					}
 					c.JSON(http.StatusOK, courseInfo)
 				})
+				lecturerCourseRoutesGroup.POST("/markDone/:cid", func(c *gin.Context) {
+					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": errors.New("course id invalid"),
+						})
+						return
+					}
 
+					var course models.Course
+					if err := course.FindById(cid); err != nil {
+						c.JSON(http.StatusNotFound, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					if course.IsDone {
+						c.JSON(http.StatusConflict, gin.H{
+							"error": "already mark done",
+						})
+						return
+					}
+
+					if err := course.UpdateCourseStatus(true); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, gin.H{
+						"message": "marked as done",
+					})
+				})
+				lecturerCourseRoutesGroup.POST("/markUndone/:cid", func(c *gin.Context) {
+					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": errors.New("course id invalid"),
+						})
+						return
+					}
+
+					var course models.Course
+					if err := course.FindById(cid); err != nil {
+						c.JSON(http.StatusNotFound, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					if !course.IsDone {
+						c.JSON(http.StatusConflict, gin.H{
+							"error": "already is undone",
+						})
+						return
+					}
+
+					if err := course.UpdateCourseStatus(false); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, gin.H{
+						"message": "marked as undone",
+					})
+				})
 			}
+
 		}
 	}
 }

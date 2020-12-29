@@ -6,21 +6,21 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/x/bsonx"
-	"math"
 )
 
 type Course struct {
 	field.DefaultField `bson:",inline"`
-	LecId              primitive.ObjectID `json:"lid" bson:"lid" form:"lid" binding:"required"`
-	CatId              primitive.ObjectID `json:"cid" bson:"cat_id" form:"cid" binding:"required"`
+	LecId              primitive.ObjectID `json:"lid" bson:"lid" binding:"required"`
+	CatId              primitive.ObjectID `json:"cat_id" bson:"cat_id" binding:"required"`
 	Ava                string             `json:"ava" bson:"ava"`
-	Name               string             `json:"name" bson:"name" form:"name" binding:"required"`
-	ShortDesc          string             `json:"short_desc" bson:"short_desc" form:"short_desc" binding:"required"`
-	FullDesc           string             `json:"full_desc" bson:"full_desc" form:"full_desc" binding:"required"`
-	Fee                float64            `json:"fee" bson:"fee" form:"fee" binding:"required"`
-	Discount           float64            `json:"discount" bson:"discount" form:"discount" binding:"required"`
-	ChapterCount       int                `json:"chapter_count" bson:"chapter_count" form:"chapter_count" binding:"required"`
+	Name               string             `json:"name" bson:"name"  binding:"required"`
+	ShortDesc          string             `json:"short_desc" bson:"short_desc" binding:"required"`
+	FullDesc           string             `json:"full_desc" bson:"full_desc"  binding:"required"`
+	Fee                float64            `json:"fee" bson:"fee" binding:"required"`
+	Discount           float64            `json:"discount" bson:"discount" binding:"required"`
+	ChapterCount       int                `json:"chapter_count" bson:"chapter_count"`
 	IsDone             bool               `json:"is_done" bson:"is_done"`
+	RegCount           int                `json:"reg_count" bson:"reg_count"`
 }
 
 type CourseChapter struct {
@@ -103,6 +103,16 @@ func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
 	return res, err
 }
 
+func (c *Course) UpdateCourseStatus(isDone bool) error {
+	return db.Collection(c.collName()).UpdateOne(ctx, bson.M{
+		"_id": c.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"is_done": isDone,
+		},
+	})
+}
+
 func (c *Course) FindByCatId(cid primitive.ObjectID) ([]Course, error) {
 	var res []Course
 	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": cid}).All(res)
@@ -124,9 +134,6 @@ func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
 	reviewScore, err := CalcAvgScore(c.CatId)
 	if err != nil {
 		return nil, err
-	}
-	if math.IsNaN(float64(reviewScore)) {
-		reviewScore = 5.0
 	}
 
 	return &simpleCourse{
@@ -157,9 +164,6 @@ func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
 	reviewScore, err := CalcAvgScore(c.CatId)
 	if err != nil {
 		return nil, err
-	}
-	if math.IsNaN(float64(reviewScore)) {
-		reviewScore = 5.0
 	}
 
 	chapters, err := getAllChapterByCourseId(c.Id)
