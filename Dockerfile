@@ -5,6 +5,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN go build -o /bin/main github.com/KGRC199913/ourdemy_backend/cmd/ourdemy
+#=========
 FROM scratch AS bin
 COPY --from=build /bin /
 COPY --from=build /src/config /config

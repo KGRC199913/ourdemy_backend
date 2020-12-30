@@ -218,6 +218,7 @@ func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
 
 func getAllChapterByCourseId(cid primitive.ObjectID) (cc []CourseChapter, err error) {
 	err = db.Collection(CourseChapter{}.collName()).Find(ctx, bson.M{"cid": cid}).All(&cc)
+
 	if err != nil {
 		return nil, err
 	}
