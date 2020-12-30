@@ -20,6 +20,25 @@ func CourseRoutes(route *gin.Engine) {
 
 	courseRoutesGroup := route.Group("/course")
 	{
+		courseRoutesGroup.GET("/chapter/:cid", func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			chapters, err := models.FindAllChapterByCatId(cid)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, chapters)
+		})
 		courseRoutesGroup.GET("/simple/:cid", func(c *gin.Context) {
 			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 			if err != nil {
@@ -291,6 +310,45 @@ func CourseRoutes(route *gin.Engine) {
 					}
 					c.JSON(http.StatusOK, courseInfo)
 				})
+				lecturerCourseRoutesGroup.POST("/update/:cid", func(c *gin.Context) {
+					type updateCourseDescData struct {
+						Short string `json:"short_desc" form:"short_desc" binding:"required"`
+						Full  string `json:"full_desc" form:"full_desc" binding:"required"`
+					}
+
+					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": errors.New("course id invalid"),
+						})
+						return
+					}
+
+					var updateData updateCourseDescData
+					if err := c.ShouldBind(&updateData); err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					var course models.Course
+					if err := course.FindById(cid); err != nil {
+						c.JSON(http.StatusNotFound, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					if err := course.UpdateCourseDesc(updateData.Short, updateData.Full); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, course)
+				})
 				lecturerCourseRoutesGroup.POST("/markDone/:cid", func(c *gin.Context) {
 					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 					if err != nil {
@@ -361,25 +419,7 @@ func CourseRoutes(route *gin.Engine) {
 						"message": "marked as undone",
 					})
 				})
-				lecturerCourseRoutesGroup.GET("/chapter/:cid", func(c *gin.Context) {
-					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
-					if err != nil {
-						c.JSON(http.StatusBadRequest, gin.H{
-							"error": err.Error(),
-						})
-						return
-					}
 
-					chapters, err := models.FindAllChapterByCatId(cid)
-					if err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{
-							"error": err.Error(),
-						})
-						return
-					}
-
-					c.JSON(http.StatusOK, chapters)
-				})
 				lecturerCourseRoutesGroup.POST("/chapter", func(c *gin.Context) {
 					var chapter models.CourseChapter
 					if err := c.ShouldBind(&chapter); err != nil {
@@ -442,9 +482,7 @@ func CourseRoutes(route *gin.Engine) {
 
 					c.JSON(http.StatusOK, chapter)
 				})
-
 			}
-
 		}
 	}
 }

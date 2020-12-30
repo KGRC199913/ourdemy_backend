@@ -15,8 +15,8 @@ type Course struct {
 	CatId              primitive.ObjectID `json:"cat_id" bson:"cat_id" binding:"required"`
 	Ava                string             `json:"ava" bson:"ava"`
 	Name               string             `json:"name" bson:"name"  binding:"required"`
-	ShortDesc          string             `json:"short_desc" bson:"short_desc" binding:"required"`
-	FullDesc           string             `json:"full_desc" bson:"full_desc"  binding:"required"`
+	ShortDesc          string             `json:"short_desc" bson:"short_desc"`
+	FullDesc           string             `json:"full_desc" bson:"full_desc"`
 	Fee                float64            `json:"fee" bson:"fee" binding:"required"`
 	Discount           float64            `json:"discount" bson:"discount" binding:"required"`
 	ChapterCount       int                `json:"chapter_count" bson:"chapter_count"`
@@ -117,6 +117,19 @@ func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
 	var res []Course
 	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"lid": lid}).All(res)
 	return res, err
+}
+
+func (c *Course) UpdateCourseDesc(short string, full string) error {
+	c.ShortDesc = short
+	c.FullDesc = full
+	return db.Collection(c.collName()).UpdateOne(ctx, bson.M{
+		"_id": c.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"short_desc": short,
+			"full_desc":  full,
+		},
+	})
 }
 
 func (c *Course) UpdateCourseStatus(isDone bool) error {
