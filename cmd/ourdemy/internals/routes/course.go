@@ -75,7 +75,7 @@ func CourseRoutes(route *gin.Engine) {
 			c.JSON(http.StatusOK, full)
 		})
 
-		courseRoutesGroup.POST("/search", func(c *gin.Context) {
+		courseRoutesGroup.GET("/search", func(c *gin.Context) {
 			catId, err := primitive.ObjectIDFromHex(c.Query("catId"))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -83,15 +83,8 @@ func CourseRoutes(route *gin.Engine) {
 				})
 			}
 
-			limitStr := c.Query("limit")
-			offsetStr := c.Query("offset")
-			if limitStr == "" {
-				limitStr = "10"
-			}
-
-			if offsetStr == "" {
-				offsetStr = "0"
-			}
+			limitStr := c.DefaultQuery("limit", "5")
+			offsetStr := c.DefaultQuery("offset", "0")
 
 			limit, err := strconv.ParseInt(limitStr, 10, 64)
 			if err != nil {
@@ -108,6 +101,40 @@ func CourseRoutes(route *gin.Engine) {
 			}
 
 			res, err := models.FindByCatId(catId, limit, offset)
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+			}
+			c.JSON(http.StatusOK, res)
+		})
+
+		courseRoutesGroup.GET("/search/subcat", func(c *gin.Context) {
+			subcatId, err := primitive.ObjectIDFromHex(c.Query("subcatId"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("category id invalid"),
+				})
+			}
+
+			limitStr := c.DefaultQuery("limit", "5")
+			offsetStr := c.DefaultQuery("offset", "0")
+
+			limit, err := strconv.ParseInt(limitStr, 10, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+			}
+
+			offset, err := strconv.ParseInt(offsetStr, 10, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+			}
+
+			res, err := models.FindBySubcatId(subcatId, limit, offset)
 			if err != nil {
 				c.JSON(http.StatusNotFound, gin.H{
 					"error": err.Error(),
@@ -334,7 +361,25 @@ func CourseRoutes(route *gin.Engine) {
 						"message": "marked as undone",
 					})
 				})
+				lecturerCourseRoutesGroup.GET("/chapter/:cid", func(c *gin.Context) {
+					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
 
+					chapters, err := models.FindAllChapterByCatId(cid)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, chapters)
+				})
 				lecturerCourseRoutesGroup.POST("/chapter", func(c *gin.Context) {
 					var chapter models.CourseChapter
 					if err := c.ShouldBind(&chapter); err != nil {

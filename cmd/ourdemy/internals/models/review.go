@@ -4,6 +4,7 @@ import (
 	"github.com/qiniu/qmgo/field"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"math"
 )
 
 type Review struct {
@@ -27,8 +28,9 @@ func (r *Review) FindById(oid primitive.ObjectID) error {
 	return db.Collection(r.collName()).Find(ctx, bson.M{"_id": oid}).One(r)
 }
 
-func FindByCourseId(cid primitive.ObjectID) (revs []Review, err error) {
-	err = db.Collection(Review{}.collName()).Find(ctx, bson.M{"cid": cid}).All(&revs)
+func FindByCourseId(cid primitive.ObjectID) ([]Review, error) {
+	var revs []Review
+	err := db.Collection(Review{}.collName()).Find(ctx, bson.M{"cid": cid}).All(&revs)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +47,11 @@ func CalcAvgScore(cid primitive.ObjectID) (float32, error) {
 	for _, review := range reviews {
 		totalScore += review.Score
 	}
-	return totalScore / float32(len(reviews)), nil
+	avg := totalScore / float32(len(reviews))
+	if math.IsNaN(float64(avg)) {
+		avg = 5.0
+	}
+	return avg, nil
 }
 
 func (r *Review) UpdateReview(newContent string, newScore float32) error {

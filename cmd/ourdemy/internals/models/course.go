@@ -28,7 +28,7 @@ type CourseChapter struct {
 	field.DefaultField `bson:",inline"`
 	CourseId           primitive.ObjectID `json:"cid" bson:"cid" binding:"required"`
 	Title              string             `json:"title" bson:"title" binding:"required"`
-	Previewable        bool               `json:"previewable" bson:"previewable" binding:"required"`
+	Previewable        *bool              `json:"previewable" bson:"previewable" binding:"required"`
 }
 
 type Video struct {
@@ -105,6 +105,12 @@ func (c *Course) FindById(oid primitive.ObjectID) error {
 
 func (cc *CourseChapter) FindById(ccid primitive.ObjectID) error {
 	return db.Collection(cc.collName()).Find(ctx, bson.M{"_id": ccid}).One(cc)
+}
+
+func FindAllChapterByCatId(cid primitive.ObjectID) ([]CourseChapter, error) {
+	var ccs []CourseChapter
+	err := db.Collection(CourseChapter{}.collName()).Find(ctx, bson.M{"cid": cid}).All(&ccs)
+	return ccs, err
 }
 
 func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
@@ -191,8 +197,8 @@ func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
 }
 
 func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
-	category := Category{}
-	if err := category.FindCategoryById(c.CatId); err != nil {
+	category := SubCategory{}
+	if err := category.FindSubCategoryById(c.CatId); err != nil {
 		return nil, err
 	}
 
@@ -214,7 +220,7 @@ func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
 
 	var previewableCc []CourseChapter
 	for _, cc := range chapters {
-		if cc.Previewable {
+		if *cc.Previewable {
 			previewableCc = append(previewableCc, cc)
 		}
 	}
