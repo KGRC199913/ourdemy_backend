@@ -9,7 +9,7 @@ import (
 )
 
 type Category struct {
-	field.DefaultField `bson:",inline" json:"-"`
+	field.DefaultField `json:",inline" bson:",inline" json:"-"`
 	Name               string `json:"name" bson:"name" binding:"required"`
 }
 
@@ -18,7 +18,7 @@ func (Category) collName() string {
 }
 
 type SubCategory struct {
-	field.DefaultField `bson:",inline" json:"-"`
+	field.DefaultField `bson:",inline" json:",inline"`
 	Name               string             `json:"name" bson:"name"`
 	ParentCategoryId   primitive.ObjectID `json:"parentCategoryId" bson:"parentCategoryId"`
 }
@@ -82,6 +82,29 @@ func (subcat *SubCategory) FindByName(name string) error {
 	return db.Collection(subcat.collName()).Find(ctx, bson.M{"name": name}).One(subcat)
 }
 
+func FindSubcatsByCatName(name string) ([]SubCategory, error) {
+	var cat Category
+	if err := cat.FindCategoryByName(name); err != nil {
+		return nil, err
+	}
+
+	var subcat []SubCategory
+	err := db.Collection(SubCategory{}.collName()).Find(ctx, bson.M{"parentCategoryId": cat.Id}).All(&subcat)
+	return subcat, err
+}
+
+func (subcat *SubCategory) FindSubCategoryById(oid primitive.ObjectID) error {
+	return db.Collection(subcat.collName()).Find(ctx, bson.M{"_id": oid}).One(subcat)
+}
+
+func FindByParentCategoryId(ParentCatId primitive.ObjectID) (subcats []SubCategory, err error) {
+	err = db.Collection(SubCategory{}.collName()).Find(ctx, bson.M{"parentCategoryId": ParentCatId}).All(&subcats)
+	if err != nil {
+		return nil, err
+	}
+	return subcats, nil
+}
+
 //Hooks
 func (subcat *SubCategory) BeforeInsert() error {
 	var cat Category
@@ -90,7 +113,7 @@ func (subcat *SubCategory) BeforeInsert() error {
 		return errors.New(fmt.Sprintf("parent category not found with id: %s", subcat.ParentCategoryId))
 	}
 	var subcatDup SubCategory
-	if err := subcatDup.FindByName(subcat.Name); err != nil {
+	if err := subcatDup.FindByName(subcat.Name); err == nil {
 		return errors.New(fmt.Sprintf("duplicate subcat: %s ", subcat.Name))
 	}
 

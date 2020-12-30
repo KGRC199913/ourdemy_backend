@@ -2,7 +2,7 @@
   "Port": 8080,
   "DbUsername": "admin",
   "DbPassword": "root",
-  "DbUrl": "mymongo:27017",
+  "DbUrl": "localhost:27017",
   "DbName": "ourdemy",
   "Secret": "XiaoXiao"
 }

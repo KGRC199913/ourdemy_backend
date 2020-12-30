@@ -40,6 +40,25 @@ func CategoryRoutes(route *gin.Engine) {
 
 		subcatRoutesGroup := categoryRoutesGroup.Group("/sub")
 		{
+			subcatRoutesGroup.GET("/:catName", func(c *gin.Context) {
+				catName := c.Param("catName")
+				if catName == "" {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": "wrong params",
+					})
+					return
+				}
+
+				subcats, err := models.FindSubcatsByCatName(catName)
+				if err != nil {
+					c.JSON(http.StatusNotFound, gin.H{
+						"errors": "not found",
+					})
+					return
+				}
+
+				c.JSON(http.StatusOK, subcats)
+			})
 			subcatRoutesGroup.POST("/create", func(c *gin.Context) {
 				type subcatCreate struct {
 					Name       string `json:"name" binding:"required"`
@@ -66,6 +85,7 @@ func CategoryRoutes(route *gin.Engine) {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"error": err.Error(),
 					})
+					return
 				}
 
 				c.JSON(http.StatusOK, subCat)

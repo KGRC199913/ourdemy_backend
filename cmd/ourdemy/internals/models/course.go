@@ -7,13 +7,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/x/bsonx"
-	"math"
 )
 
 type Course struct {
 	field.DefaultField `bson:",inline"`
-	LecId              primitive.ObjectID `json:"lid" bson:"lid" form:"lid" binding:"required"`
-	CatId              primitive.ObjectID `json:"cid" bson:"cat_id" form:"cid" binding:"required"`
+	LecId              primitive.ObjectID `json:"lid" bson:"lid" binding:"required"`
+	CatId              primitive.ObjectID `json:"cat_id" bson:"cat_id" binding:"required"`
 	Ava                string             `json:"ava" bson:"ava"`
 	Name               string             `json:"name" bson:"name"  binding:"required"`
 	ShortDesc          string             `json:"short_desc" bson:"short_desc" binding:"required"`
@@ -22,13 +21,14 @@ type Course struct {
 	Discount           float64            `json:"discount" bson:"discount" binding:"required"`
 	ChapterCount       int                `json:"chapter_count" bson:"chapter_count"`
 	IsDone             bool               `json:"is_done" bson:"is_done"`
+	RegCount           int                `json:"reg_count" bson:"reg_count"`
 }
 
 type CourseChapter struct {
 	field.DefaultField `bson:",inline"`
 	CourseId           primitive.ObjectID `json:"cid" bson:"cid" binding:"required"`
 	Title              string             `json:"title" bson:"title" binding:"required"`
-	Previewable        bool               `json:"previewable" bson:"previewable" binding:"required"`
+	Previewable        *bool              `json:"previewable" bson:"previewable" binding:"required"`
 }
 
 type Video struct {
@@ -107,6 +107,12 @@ func (cc *CourseChapter) FindById(ccid primitive.ObjectID) error {
 	return db.Collection(cc.collName()).Find(ctx, bson.M{"_id": ccid}).One(cc)
 }
 
+func FindAllChapterByCatId(cid primitive.ObjectID) ([]CourseChapter, error) {
+	var ccs []CourseChapter
+	err := db.Collection(CourseChapter{}.collName()).Find(ctx, bson.M{"cid": cid}).All(&ccs)
+	return ccs, err
+}
+
 func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
 	var res []Course
 	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"lid": lid}).All(res)
@@ -133,10 +139,31 @@ func (c *Course) UpdateChapterCount(count int) error {
 	})
 }
 
-func (c *Course) FindByCatId(cid primitive.ObjectID) ([]Course, error) {
+func FindByCatId(cid primitive.ObjectID, limit int64, offset int64) ([]Course, error) {
 	var res []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": cid}).All(res)
+	subCats, err := FindByParentCategoryId(cid)
+	if err != nil {
+		return nil, err
+	}
+
+	var courses []Course
+	for _, subCat := range subCats {
+		err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subCat.Id}).Skip(offset).Limit(limit).All(&courses)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, courses...)
+	}
 	return res, err
+}
+
+func FindBySubcatId(subcatId primitive.ObjectID, limit int64, offset int64) ([]Course, error) {
+	var res []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subcatId}).Skip(offset).Limit(limit).All(&res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
@@ -155,9 +182,6 @@ func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
 	if err != nil {
 		return nil, err
 	}
-	if math.IsNaN(float64(reviewScore)) {
-		reviewScore = 5.0
-	}
 
 	return &simpleCourse{
 		Id:           c.Id.String(),
@@ -173,8 +197,8 @@ func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
 }
 
 func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
-	category := Category{}
-	if err := category.FindCategoryById(c.CatId); err != nil {
+	category := SubCategory{}
+	if err := category.FindSubCategoryById(c.CatId); err != nil {
 		return nil, err
 	}
 
@@ -188,9 +212,6 @@ func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
 	if err != nil {
 		return nil, err
 	}
-	if math.IsNaN(float64(reviewScore)) {
-		reviewScore = 5.0
-	}
 
 	chapters, err := getAllChapterByCourseId(c.Id)
 	if err != nil {
@@ -199,7 +220,7 @@ func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
 
 	var previewableCc []CourseChapter
 	for _, cc := range chapters {
-		if cc.Previewable {
+		if *cc.Previewable {
 			previewableCc = append(previewableCc, cc)
 		}
 	}
