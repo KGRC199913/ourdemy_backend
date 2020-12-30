@@ -82,6 +82,18 @@ func (subcat *SubCategory) FindByName(name string) error {
 	return db.Collection(subcat.collName()).Find(ctx, bson.M{"name": name}).One(subcat)
 }
 
+func (subcat *SubCategory) FindSubCategoryById(oid primitive.ObjectID) error {
+	return db.Collection(subcat.collName()).Find(ctx, bson.M{"_id": oid}).One(subcat)
+}
+
+func FindByParentCategoryId(ParentCatId primitive.ObjectID) (subcats []SubCategory, err error) {
+	err = db.Collection(SubCategory{}.collName()).Find(ctx, bson.M{"parentCategoryId": ParentCatId}).All(&subcats)
+	if err != nil {
+		return nil, err
+	}
+	return subcats, nil
+}
+
 //Hooks
 func (subcat *SubCategory) BeforeInsert() error {
 	var cat Category

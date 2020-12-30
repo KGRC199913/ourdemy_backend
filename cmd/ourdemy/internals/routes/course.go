@@ -13,6 +13,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"net/http"
+	"strconv"
 )
 
 func CourseRoutes(route *gin.Engine) {
@@ -73,6 +74,48 @@ func CourseRoutes(route *gin.Engine) {
 
 			c.JSON(http.StatusOK, full)
 		})
+
+		courseRoutesGroup.POST("/search", func(c *gin.Context) {
+			catId, err := primitive.ObjectIDFromHex(c.Query("catId"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("category id invalid"),
+				})
+			}
+
+			limitStr := c.Query("limit")
+			offsetStr := c.Query("offset")
+			if limitStr == "" {
+				limitStr = "10"
+			}
+
+			if offsetStr == "" {
+				offsetStr = "0"
+			}
+
+			limit, err := strconv.ParseInt(limitStr, 10, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+			}
+
+			offset, err := strconv.ParseInt(offsetStr, 10, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+			}
+
+			res, err := models.FindByCatId(catId, limit, offset)
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+			}
+			c.JSON(http.StatusOK, res)
+		})
+
 		authCourseRoutesGroup := courseRoutesGroup.Group("/", middlewares.Authenticate)
 		{
 			authCourseRoutesGroup.POST("/buy/:cid", func(c *gin.Context) {
@@ -291,6 +334,7 @@ func CourseRoutes(route *gin.Engine) {
 						"message": "marked as undone",
 					})
 				})
+
 			}
 
 		}

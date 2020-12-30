@@ -113,10 +113,31 @@ func (c *Course) UpdateCourseStatus(isDone bool) error {
 	})
 }
 
-func (c *Course) FindByCatId(cid primitive.ObjectID) ([]Course, error) {
+func FindByCatId(cid primitive.ObjectID, limit int64, offset int64) ([]Course, error) {
 	var res []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": cid}).All(res)
+	subCats, err := FindByParentCategoryId(cid)
+	if err != nil {
+		return nil, err
+	}
+
+	var courses []Course
+	for _, subCat := range subCats {
+		err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subCat.Id}).Skip(offset).Limit(limit).All(&courses)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, courses...)
+	}
 	return res, err
+}
+
+func FindBySubcatId(subcatId primitive.ObjectID, limit int64, offset int64) ([]Course, error) {
+	var res []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subcatId}).Skip(offset).Limit(limit).All(&res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
