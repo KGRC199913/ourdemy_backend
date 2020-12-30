@@ -15,7 +15,7 @@ import (
 func VideoRoutes(route *gin.Engine) {
 	videoRoutesGroup := route.Group("/vid")
 	{
-		lecVidRoutesGroup := videoRoutesGroup.Group("/", middlewares.LecturerAuthenticate)
+		lecVidRoutesGroup := videoRoutesGroup.Group("/", middlewares.Authenticate, middlewares.LecturerAuthenticate)
 		{
 			lecVidRoutesGroup.PUT("/:cid/:ccid", func(c *gin.Context) {
 				type uploadVidData struct {
@@ -50,6 +50,21 @@ func VideoRoutes(route *gin.Engine) {
 				if err := course.FindById(cid); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"error": errors.New("course not exist"),
+					})
+					return
+				}
+
+				lecid, exist := c.Get("id")
+				if !exist {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": errors.New("something went wrong"),
+					})
+					return
+				}
+
+				if course.LecId != lecid.(primitive.ObjectID) {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": errors.New("course does not belong to you"),
 					})
 					return
 				}
@@ -139,6 +154,21 @@ func VideoRoutes(route *gin.Engine) {
 				if err := course.FindById(cid); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"error": errors.New("course not exist"),
+					})
+					return
+				}
+
+				lecid, exist := c.Get("id")
+				if !exist {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": errors.New("something went wrong"),
+					})
+					return
+				}
+
+				if course.LecId != lecid.(primitive.ObjectID) {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": errors.New("course does not belong to you"),
 					})
 					return
 				}
@@ -254,6 +284,21 @@ func VideoRoutes(route *gin.Engine) {
 				if err := course.FindById(cid); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"error": errors.New("course not exist"),
+					})
+					return
+				}
+
+				lecid, exist := c.Get("id")
+				if !exist {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": errors.New("something went wrong"),
+					})
+					return
+				}
+
+				if course.LecId != lecid.(primitive.ObjectID) {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": errors.New("course does not belong to you"),
 					})
 					return
 				}
