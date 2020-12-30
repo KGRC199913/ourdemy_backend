@@ -31,12 +31,11 @@ type CourseChapter struct {
 	Previewable        *bool              `json:"previewable" bson:"previewable" binding:"required"`
 }
 
-type Video struct {
-	field.DefaultField `bson:",inline"`
-	ChapterId          string `json:"chap_id" bson:"chap_id"`
-	CourseId           string `json:"cid" bson:"cid"`
-	Path               string `json:"path" bson:"path"`
-	Title              string `json:"title" bson:"title"`
+type VideoMetadata struct {
+	field.DefaultField `bson:",inline" json:",inline"`
+	ChapterId          primitive.ObjectID `json:"chap_id" bson:"chap_id"`
+	CourseId           primitive.ObjectID `json:"cid" bson:"cid"`
+	Title              string             `json:"title" bson:"title"`
 }
 
 type simpleCourse struct {
@@ -77,8 +76,8 @@ func (CourseChapter) collName() string {
 	return "course_chapters"
 }
 
-func (Video) collName() string {
-	return "videos"
+func (VideoMetadata) collName() string {
+	return "video_metadata"
 }
 
 func CreateCourseTextIndexModels() []mongo.IndexModel {
@@ -99,12 +98,27 @@ func (cc *CourseChapter) Save() error {
 	return err
 }
 
+func (vm *VideoMetadata) Save() error {
+	_, err := db.Collection(vm.collName()).InsertOne(ctx, vm)
+	return err
+}
+
+func (vm *VideoMetadata) Remove() error {
+	return db.Collection(vm.collName()).Remove(ctx, bson.M{
+		"_id": vm.Id,
+	})
+}
+
 func (c *Course) FindById(oid primitive.ObjectID) error {
 	return db.Collection(c.collName()).Find(ctx, bson.M{"_id": oid}).One(c)
 }
 
 func (cc *CourseChapter) FindById(ccid primitive.ObjectID) error {
 	return db.Collection(cc.collName()).Find(ctx, bson.M{"_id": ccid}).One(cc)
+}
+
+func (vm *VideoMetadata) FindById(vmid primitive.ObjectID) error {
+	return db.Collection(vm.collName()).Find(ctx, bson.M{"_id": vmid}).One(vm)
 }
 
 func FindAllChapterByCatId(cid primitive.ObjectID) ([]CourseChapter, error) {
@@ -269,6 +283,17 @@ func getAllChapterByCourseId(cid primitive.ObjectID) (cc []CourseChapter, err er
 func (c *Course) Remove() error {
 	return db.Collection(c.collName()).Remove(ctx, bson.M{
 		"_id": c.Id,
+	})
+}
+
+func (vm *VideoMetadata) UpdateVideoTitle(title string) error {
+	vm.Title = title
+	return db.Collection(vm.collName()).UpdateOne(ctx, bson.M{
+		"_id": vm.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"title": vm.Title,
+		},
 	})
 }
 

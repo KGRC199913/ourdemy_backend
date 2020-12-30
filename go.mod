@@ -11,6 +11,7 @@ require (
 	github.com/sony/sonyflake v1.0.0
 	github.com/spf13/viper v1.7.1
 	github.com/thanhpk/randstr v1.0.4
+	github.com/xis/baraka v1.2.0
 	go.mongodb.org/mongo-driver v1.4.0
 	golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9 // indirect
 )
