@@ -13,6 +13,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"net/http"
+	"strconv"
 )
 
 func CourseRoutes(route *gin.Engine) {
@@ -73,6 +74,75 @@ func CourseRoutes(route *gin.Engine) {
 
 			c.JSON(http.StatusOK, full)
 		})
+
+		courseRoutesGroup.GET("/search", func(c *gin.Context) {
+			catId, err := primitive.ObjectIDFromHex(c.Query("catId"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("category id invalid"),
+				})
+			}
+
+			limitStr := c.DefaultQuery("limit", "5")
+			offsetStr := c.DefaultQuery("offset", "0")
+
+			limit, err := strconv.ParseInt(limitStr, 10, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+			}
+
+			offset, err := strconv.ParseInt(offsetStr, 10, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+			}
+
+			res, err := models.FindByCatId(catId, limit, offset)
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+			}
+			c.JSON(http.StatusOK, res)
+		})
+
+		courseRoutesGroup.GET("/search/subcat", func(c *gin.Context) {
+			subcatId, err := primitive.ObjectIDFromHex(c.Query("subcatId"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("category id invalid"),
+				})
+			}
+
+			limitStr := c.DefaultQuery("limit", "5")
+			offsetStr := c.DefaultQuery("offset", "0")
+
+			limit, err := strconv.ParseInt(limitStr, 10, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+			}
+
+			offset, err := strconv.ParseInt(offsetStr, 10, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+			}
+
+			res, err := models.FindBySubcatId(subcatId, limit, offset)
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+			}
+			c.JSON(http.StatusOK, res)
+		})
+
 		authCourseRoutesGroup := courseRoutesGroup.Group("/", middlewares.Authenticate)
 		{
 			authCourseRoutesGroup.POST("/buy/:cid", func(c *gin.Context) {
@@ -106,8 +176,19 @@ func CourseRoutes(route *gin.Engine) {
 			lecturerCourseRoutesGroup := authCourseRoutesGroup.Group("/", middlewares.LecturerAuthenticate)
 			{
 				lecturerCourseRoutesGroup.POST("/create", func(c *gin.Context) {
-					var course models.Course
-					if err := c.ShouldBind(&course); err != nil {
+					type courseCreateInfo struct {
+						LecId        string  `json:"lid" bson:"lid" form:"lid" binding:"required"`
+						CatId        string  `json:"cid" bson:"cat_id" form:"cid" binding:"required"`
+						Name         string  `json:"name" bson:"name" form:"name" binding:"required"`
+						ShortDesc    string  `json:"short_desc" bson:"short_desc" form:"short_desc" binding:"required"`
+						FullDesc     string  `json:"full_desc" bson:"full_desc" form:"full_desc" binding:"required"`
+						Fee          float64 `json:"fee" bson:"fee" form:"fee" binding:"required"`
+						Discount     float64 `json:"discount" bson:"discount" form:"discount"`
+						ChapterCount int     `json:"chapter_count" bson:"chapter_count" form:"chapter_count" binding:"required"`
+					}
+
+					var courseInfo courseCreateInfo
+					if err := c.ShouldBind(&courseInfo); err != nil {
 						c.JSON(http.StatusBadRequest, gin.H{
 							"error": err.Error(),
 						})
@@ -174,14 +255,41 @@ func CourseRoutes(route *gin.Engine) {
 						}
 					}
 
-					course.Ava = base64.StdEncoding.EncodeToString(buff.Bytes())
+					lid, err := primitive.ObjectIDFromHex(courseInfo.LecId)
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					cid, err := primitive.ObjectIDFromHex(courseInfo.CatId)
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					course := models.Course{
+						LecId:        lid,
+						CatId:        cid,
+						Ava:          base64.StdEncoding.EncodeToString(buff.Bytes()),
+						Name:         courseInfo.Name,
+						ShortDesc:    courseInfo.ShortDesc,
+						FullDesc:     courseInfo.FullDesc,
+						Fee:          courseInfo.Fee,
+						Discount:     courseInfo.Discount,
+						ChapterCount: courseInfo.ChapterCount,
+					}
+
 					if err := course.Save(); err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{
 							"error": err.Error(),
 						})
 						return
 					}
-					c.JSON(http.StatusOK, course)
+					c.JSON(http.StatusOK, courseInfo)
 				})
 				lecturerCourseRoutesGroup.POST("/markDone/:cid", func(c *gin.Context) {
 					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
@@ -252,6 +360,25 @@ func CourseRoutes(route *gin.Engine) {
 					c.JSON(http.StatusOK, gin.H{
 						"message": "marked as undone",
 					})
+				})
+				lecturerCourseRoutesGroup.GET("/chapter/:cid", func(c *gin.Context) {
+					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					chapters, err := models.FindAllChapterByCatId(cid)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, chapters)
 				})
 				lecturerCourseRoutesGroup.POST("/chapter", func(c *gin.Context) {
 					var chapter models.CourseChapter

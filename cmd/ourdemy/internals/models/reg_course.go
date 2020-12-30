@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"github.com/qiniu/qmgo/field"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -9,13 +10,13 @@ import (
 
 type regCourse struct {
 	field.DefaultField `bson:",inline"`
-	CourseId           primitive.ObjectID `json:"cid"`
-	JoinInfo           []courseJoinInfo   `json:"join_info"`
+	CourseId           primitive.ObjectID `json:"cid" bson:"cid"`
+	JoinInfo           []courseJoinInfo   `json:"join_info" bson:"join_info"`
 }
 
 type courseJoinInfo struct {
-	JoinDate time.Time          `json:"join_date"`
-	UserId   primitive.ObjectID `json:"uid"`
+	JoinDate time.Time          `json:"join_date" bson:"join_date"`
+	UserId   primitive.ObjectID `json:"uid" bson:"uid"`
 }
 
 func (regCourse) collName() string {
@@ -30,7 +31,7 @@ func (rgC *regCourse) Save() error {
 func AddUserToCourseInfo(uid primitive.ObjectID, cid primitive.ObjectID) error {
 	var rgC regCourse
 	if err := rgC.FindByCourseId(cid); err != nil {
-		return err
+		return errors.New("user already registered")
 	}
 	rgC.JoinInfo = append(rgC.JoinInfo, courseJoinInfo{
 		JoinDate: time.Now(),
