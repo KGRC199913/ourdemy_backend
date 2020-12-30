@@ -54,6 +54,7 @@ func Run(config *ultis.Config) error {
 
 	routing(r)
 
+	fmt.Printf("App started, listentning on port %s\n", config.Port)
 	err = r.Run(fmt.Sprintf(":%d", config.Port))
 	if err != nil {
 		return err
