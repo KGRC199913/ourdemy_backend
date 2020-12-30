@@ -44,6 +44,7 @@ func routing(r *gin.Engine) {
 	route.AdminRoutes(r)
 	route.UserRoutes(r)
 	route.ReviewRoutes(r)
+	route.VideoRoutes(r)
 }
 
 func Run(config *ultis.Config) error {
