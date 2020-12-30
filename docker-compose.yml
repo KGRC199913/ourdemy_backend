@@ -1,0 +1,31 @@
+version: '3.5'
+
+services:
+  backend:
+    build: ./
+    ports:
+      - 8080:8080
+    restart: always
+    depends_on:
+      - mongo
+    networks:
+      - nw_ourdemy
+    volumes:
+      - ourdemy_vid:/vid
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: root
+    networks:
+      - nw_ourdemy
+    volumes:
+      - shared_database:/data/db
+
+networks:
+  nw_ourdemy: { }
+volumes:
+  shared_database: { }
+  ourdemy_vid: { }
