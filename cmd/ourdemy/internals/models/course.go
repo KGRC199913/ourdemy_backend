@@ -193,6 +193,15 @@ func FindBySubcatId(subcatId primitive.ObjectID, limit int64, offset int64) ([]C
 	return res, nil
 }
 
+func FindAllVideoMetadataByChapterId(ccid primitive.ObjectID) ([]VideoMetadata, error) {
+	var res []VideoMetadata
+	err := db.Collection(VideoMetadata{}.collName()).Find(ctx, bson.M{"chap_id": ccid}).All(&res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
 	category := Category{}
 	if err := category.FindCategoryById(c.CatId); err != nil {
