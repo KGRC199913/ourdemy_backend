@@ -15,6 +15,72 @@ import (
 func VideoRoutes(route *gin.Engine) {
 	videoRoutesGroup := route.Group("/vid")
 	{
+		videoRoutesGroup.GET("/chapter/:ccid", func(c *gin.Context) {
+			ccid, err := primitive.ObjectIDFromHex(c.Param("ccid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("course chapter id invalid"),
+				})
+				return
+			}
+
+			var courseChapter models.CourseChapter
+			if err := courseChapter.FindById(ccid); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("chapter not exist"),
+				})
+				return
+			}
+
+			vms, err := models.FindAllVideoMetadataByChapterId(ccid)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, vms)
+		})
+		authenVidRoutesGroup := videoRoutesGroup.Group("/", middlewares.Authenticate)
+		{
+			authenVidRoutesGroup.GET("/download/:vid", func(c *gin.Context) {
+				uid, exist := c.Get("id")
+				if !exist {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": errors.New("something went wrong"),
+					})
+					return
+				}
+
+				ouid := uid.(primitive.ObjectID)
+
+				vid, err := primitive.ObjectIDFromHex(c.Param("vid"))
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": errors.New("vid id invalid"),
+					})
+					return
+				}
+
+				var vm models.VideoMetadata
+				if err := vm.FindById(vid); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": errors.New("video not exist"),
+					})
+					return
+				}
+
+				if !models.IsUserJoined(vm.CourseId, ouid) {
+					c.JSON(http.StatusForbidden, gin.H{
+						"error": errors.New("didn't join this course"),
+					})
+					return
+				}
+
+				c.File("vid/" + vm.Id.Hex())
+			})
+		}
 		lecVidRoutesGroup := videoRoutesGroup.Group("/", middlewares.Authenticate, middlewares.LecturerAuthenticate)
 		{
 			lecVidRoutesGroup.PUT("/:cid/:ccid", func(c *gin.Context) {

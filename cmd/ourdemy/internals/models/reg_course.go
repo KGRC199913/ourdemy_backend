@@ -64,6 +64,21 @@ func (rgC *regCourse) FindByCourseId(cid primitive.ObjectID) error {
 	return db.Collection(rgC.collName()).Find(ctx, bson.M{"cid": cid}).One(rgC)
 }
 
+func IsUserJoined(cid primitive.ObjectID, uid primitive.ObjectID) bool {
+	var rgC regCourse
+	if err := rgC.FindByCourseId(cid); err != nil {
+		return false
+	}
+
+	for _, joinInfo := range rgC.JoinInfo {
+		if joinInfo.UserId == uid {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Hooks
 func (rgC *regCourse) BeforeInsert() error {
 	rgC.JoinInfo = rgcUnique(rgC.JoinInfo)
