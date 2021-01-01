@@ -5,7 +5,9 @@ import (
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	route "github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/routes"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 func dbInit(config *ultis.Config) error {
@@ -28,6 +30,15 @@ func serverInit(config *ultis.Config) (*gin.Engine, error) {
 	//end DB init
 
 	r := gin.New()
+	//cors
+	r.Use(cors.New(cors.Config{
+		AllowAllOrigins: true,
+		AllowMethods:    []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders:    []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Refresh", "Accept", "Accept-Language", "Content-Type"},
+		ExposeHeaders:   []string{"AccessToken", "RefreshToken"},
+		MaxAge:          12 * time.Hour,
+	}))
+	//end cors
 	//add global mdw here
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
