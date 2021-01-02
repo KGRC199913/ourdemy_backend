@@ -2,6 +2,7 @@ package routes
 
 import (
 	"errors"
+	"fmt"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
@@ -202,7 +203,7 @@ func UserRoutes(route *gin.Engine) {
 			c.JSON(http.StatusOK, curUser)
 		})
 
-		userRoutesGroup.POST("/fav/:cid", func(c *gin.Context) {
+		userRoutesGroup.POST("/fav/:cid", middlewares.Authenticate, func(c *gin.Context) {
 			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -247,7 +248,7 @@ func UserRoutes(route *gin.Engine) {
 			})
 		})
 
-		userRoutesGroup.POST("/unfav/:cid", func(c *gin.Context) {
+		userRoutesGroup.POST("/unfav/:cid", middlewares.Authenticate, func(c *gin.Context) {
 			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -290,6 +291,47 @@ func UserRoutes(route *gin.Engine) {
 			c.JSON(http.StatusOK, gin.H{
 				"message": "added to fav list",
 			})
+		})
+
+		userRoutesGroup.GET("/favList", middlewares.Authenticate, func(c *gin.Context) {
+			uid, ok := c.Get("id")
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "id missing? wtf",
+				})
+				return
+			}
+
+			var wl models.WatchList
+			if err := wl.FindByUid(uid.(primitive.ObjectID)); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			type extremeSimpleCourse struct {
+				Id   primitive.ObjectID `json:"cid"`
+				Name string             `json:"name"`
+			}
+
+			var res []extremeSimpleCourse
+			var course models.Course
+			for _, courseId := range wl.CoursesId {
+				if err := course.FindById(courseId); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "something went wrong",
+					})
+					fmt.Println(err.Error())
+					return
+				}
+				res = append(res, extremeSimpleCourse{
+					Id:   courseId,
+					Name: course.Name,
+				})
+			}
+
+			c.JSON(http.StatusOK, res)
 		})
 	}
 }

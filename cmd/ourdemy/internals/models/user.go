@@ -24,7 +24,7 @@ type User struct {
 	RecoverCode            string    `json:"-" bson:"recover"`
 	RecoverCodeExpiredTime time.Time `json:"-" bson:"rec_exp"`
 	RefreshToken           string    `json:"-" bson:"rf"`
-	IsLec                  bool      `json:"-" bson:"is_lec"`
+	IsLec                  bool      `json:"isLec" bson:"is_lec"`
 }
 
 func (User) collName() string {
