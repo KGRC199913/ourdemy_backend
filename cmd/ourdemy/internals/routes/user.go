@@ -189,6 +189,19 @@ func UserRoutes(route *gin.Engine) {
 			})
 		})
 
+		userRoutesGroup.GET("/profile", middlewares.Authenticate, func(c *gin.Context) {
+			var curUser models.User
+			curUserId, _ := c.Get("id")
+			if err := curUser.FindById(curUserId.(primitive.ObjectID)); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, curUser)
+		})
+
 		userRoutesGroup.POST("/fav/:cid", func(c *gin.Context) {
 			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 			if err != nil {

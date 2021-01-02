@@ -19,7 +19,7 @@ type User struct {
 	Email                  string    `json:"email" bson:"email" binding:"required"`
 	HPassword              string    `json:"pass" bson:"hpass" binding:"required"`
 	CurOtp                 string    `json:"-" bson:"otp"`
-	LastOtpUpdated         time.Time `json:"last_otp_updated" bson:"last_otp_updated"`
+	LastOtpUpdated         time.Time `json:"-" bson:"last_otp_updated"`
 	CurOtpExpiredTime      time.Time `json:"-" bson:"otp_exp"`
 	RecoverCode            string    `json:"-" bson:"recover"`
 	RecoverCodeExpiredTime time.Time `json:"-" bson:"rec_exp"`
