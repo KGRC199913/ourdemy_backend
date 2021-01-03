@@ -185,9 +185,56 @@ func UserRoutes(route *gin.Engine) {
 				return
 			}
 
-			c.JSON(http.StatusOK, gin.H{
-				"message": "Update successful.",
-			})
+			c.JSON(http.StatusOK, curUpdateUser)
+		})
+
+		userRoutesGroup.POST("/updatePassword", middlewares.Authenticate, func(c *gin.Context) {
+			type userPasswordUpdate struct {
+				OldPassword string `json:"old_password" binding:"required"`
+				NewPassword string `json:"new_password" binding:"required"`
+			}
+			var curUpdateUserPassword userPasswordUpdate
+			if err := c.ShouldBind(&curUpdateUserPassword); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			curUser := models.User{}
+
+			curUserId, _ := c.Get("id")
+			if err := curUser.FindById(curUserId.(primitive.ObjectID)); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			err := scrypt.CompareHashAndPassword([]byte(curUser.HPassword), []byte(curUpdateUserPassword.OldPassword))
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "Wrong old password",
+				})
+				return
+			}
+
+			hashed, err := scrypt.GenerateFromPassword([]byte(curUpdateUserPassword.NewPassword), scrypt.DefaultParams)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "something went wrong",
+				})
+				return
+			}
+
+			if err := curUser.UpdatePassword(string(hashed)); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, curUpdateUserPassword)
 		})
 
 		userRoutesGroup.GET("/profile", middlewares.Authenticate, func(c *gin.Context) {

@@ -169,6 +169,16 @@ func (u *User) UpdateProfile(newFullname string, newEmail string) error {
 	})
 }
 
+func (u *User) UpdatePassword(newPassword string) error {
+	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
+		"_id": u.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"hpass": newPassword,
+		},
+	})
+}
+
 func (u *User) UpdateLecturerStatus(isLec bool) error {
 	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
 		"_id": u.Id,

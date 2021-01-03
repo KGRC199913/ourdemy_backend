@@ -1,8 +1,0 @@
-{
-  "Port": 8080,
-  "DbUsername": "admin",
-  "DbPassword": "root",
-  "DbUrl": "mongo:27017",
-  "DbName": "ourdemy",
-  "Secret": "XiaoXiao"
-}
