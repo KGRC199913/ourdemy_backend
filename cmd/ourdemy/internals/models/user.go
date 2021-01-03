@@ -116,7 +116,6 @@ func (u *User) ConfirmOtp(username string, otp string) error {
 		return errors.New("otp expired")
 	}
 
-	fmt.Println(u.Id)
 	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
 		"_id": u.Id,
 	}, bson.M{

@@ -67,8 +67,8 @@ func UserRoutes(route *gin.Engine) {
 			}
 
 			auth := LoginAuth(viper.GetString("USERNAME"), viper.GetString("PASSWORD"))
-			to := []string{"nhokbm18@gmail.com"}
-			msg := []byte("To: nhokbm18@gmail.com\r\n" +
+			to := []string{user.Email}
+			msg := []byte("To: " + user.Email + "\r\n" +
 				"Subject: Ourdemy Announcement\r\n" +
 				"\r\n" + "Otp: " +
 				user.CurOtp + "\nExpired Time: " + user.CurOtpExpiredTime.String() + "\r\n")
