@@ -7,9 +7,37 @@ import (
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
 	scrypt "github.com/elithrar/simple-scrypt"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
+	"net/smtp"
 )
+
+type loginAuth struct {
+	username, password string
+}
+
+func LoginAuth(username, password string) smtp.Auth {
+	return &loginAuth{username, password}
+}
+
+func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
+	return "LOGIN", []byte{}, nil
+}
+
+func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
+	if more {
+		switch string(fromServer) {
+		case "Username:":
+			return []byte(a.username), nil
+		case "Password:":
+			return []byte(a.password), nil
+		default:
+			return nil, errors.New("Unkown fromServer")
+		}
+	}
+	return nil, nil
+}
 
 func UserRoutes(route *gin.Engine) {
 	userRoutesGroup := route.Group("/users")
@@ -38,8 +66,17 @@ func UserRoutes(route *gin.Engine) {
 			}
 
 			//TODO SEND OTP
+			auth := LoginAuth(viper.GetString("USERNAME"), viper.GetString("PASSWORD"))
+			to := []string{"nhokbm18@gmail.com"}
+			msg := []byte("To: nhokbm18@gmail.com\r\n" +
+				"Subject: Ourdemy Announcement\r\n" +
+				"\r\n" + "Otp: " +
+				user.CurOtp + "\nExpired Time: " + user.CurOtpExpiredTime.String() + "\r\n")
+			err := smtp.SendMail("smtp.gmail.com:587", auth, viper.GetString("USERNAME"), to, msg)
+			if err != nil {
+				panic(err.Error())
+			}
 			//END SEND OTP
-
 			c.JSON(http.StatusOK, user)
 		})
 

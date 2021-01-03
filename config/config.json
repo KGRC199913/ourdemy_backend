@@ -2,7 +2,10 @@
   "Port": 8080,
   "DbUsername": "admin",
   "DbPassword": "root",
-  "DbUrl": "mongo:27017",
+  "DbUrl": "localhost:27017",
   "DbName": "ourdemy",
-  "Secret": "XiaoXiao"
+  "Secret": "XiaoXiao",
+  "SPARKPOST_API_KEY": "d83ae114b0287a2cc962a88bb0a39dea698fda52",
+  "USERNAME": "nhokbm113@gmail.com",
+  "PASSWORD": "Nhokbmlove740119"
 }

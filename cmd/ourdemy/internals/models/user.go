@@ -96,14 +96,9 @@ func (u *User) GenerateOtp() error {
 		return errors.New("otp is already generated")
 	}
 
-	//TODO GEN OTP
-
-	//FAKE OTP
-	u.CurOtp = "1234"
+	u.CurOtp = randstr.Hex(4)
 	u.LastOtpUpdated = time.Now()
 	u.CurOtpExpiredTime = time.Now().Add(time.Minute * 30)
-	//END FAKE OTP
-	//END GEN OTP
 
 	return nil
 }
@@ -143,9 +138,7 @@ func (u *User) UpdateOtp(username string) (*string, error) {
 		return nil, errors.New("otp request too frequent")
 	}
 
-	//TODO GEN OTP
-	newOtp := "4321"
-	//END GEN OTP
+	newOtp := randstr.Hex(4)
 
 	return &newOtp, db.Collection(u.collName()).UpdateOne(ctx, bson.M{
 		"_id": u.Id,
