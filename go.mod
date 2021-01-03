@@ -6,6 +6,7 @@ require (
 	github.com/SparkPost/gosparkpost v0.2.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/elithrar/simple-scrypt v1.3.0
+	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.6.3
 	github.com/oliamb/cutter v0.2.2
 	github.com/qiniu/qmgo v0.9.1

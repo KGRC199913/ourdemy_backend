@@ -19,12 +19,12 @@ type User struct {
 	Email                  string    `json:"email" bson:"email" binding:"required"`
 	HPassword              string    `json:"pass" bson:"hpass" binding:"required"`
 	CurOtp                 string    `json:"-" bson:"otp"`
-	LastOtpUpdated         time.Time `json:"last_otp_updated" bson:"last_otp_updated"`
+	LastOtpUpdated         time.Time `json:"-" bson:"last_otp_updated"`
 	CurOtpExpiredTime      time.Time `json:"-" bson:"otp_exp"`
 	RecoverCode            string    `json:"-" bson:"recover"`
 	RecoverCodeExpiredTime time.Time `json:"-" bson:"rec_exp"`
 	RefreshToken           string    `json:"-" bson:"rf"`
-	IsLec                  bool      `json:"-" bson:"is_lec"`
+	IsLec                  bool      `json:"isLec" bson:"is_lec"`
 }
 
 func (User) collName() string {
@@ -158,6 +158,16 @@ func (u *User) UpdateProfile(newFullname string, newEmail string) error {
 		"$set": bson.M{
 			"fullname": newFullname,
 			"email":    newEmail,
+		},
+	})
+}
+
+func (u *User) UpdatePassword(newPassword string) error {
+	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
+		"_id": u.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"hpass": newPassword,
 		},
 	})
 }

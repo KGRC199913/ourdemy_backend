@@ -2,6 +2,7 @@ package routes
 
 import (
 	"errors"
+	"fmt"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
@@ -221,12 +222,72 @@ func UserRoutes(route *gin.Engine) {
 				return
 			}
 
-			c.JSON(http.StatusOK, gin.H{
-				"message": "Update successful.",
-			})
+			c.JSON(http.StatusOK, curUpdateUser)
 		})
 
-		userRoutesGroup.POST("/fav/:cid", func(c *gin.Context) {
+		userRoutesGroup.POST("/updatePassword", middlewares.Authenticate, func(c *gin.Context) {
+			type userPasswordUpdate struct {
+				OldPassword string `json:"old_password" binding:"required"`
+				NewPassword string `json:"new_password" binding:"required"`
+			}
+			var curUpdateUserPassword userPasswordUpdate
+			if err := c.ShouldBind(&curUpdateUserPassword); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			curUser := models.User{}
+
+			curUserId, _ := c.Get("id")
+			if err := curUser.FindById(curUserId.(primitive.ObjectID)); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			err := scrypt.CompareHashAndPassword([]byte(curUser.HPassword), []byte(curUpdateUserPassword.OldPassword))
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "Wrong old password",
+				})
+				return
+			}
+
+			hashed, err := scrypt.GenerateFromPassword([]byte(curUpdateUserPassword.NewPassword), scrypt.DefaultParams)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "something went wrong",
+				})
+				return
+			}
+
+			if err := curUser.UpdatePassword(string(hashed)); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, curUpdateUserPassword)
+		})
+
+		userRoutesGroup.GET("/profile", middlewares.Authenticate, func(c *gin.Context) {
+			var curUser models.User
+			curUserId, _ := c.Get("id")
+			if err := curUser.FindById(curUserId.(primitive.ObjectID)); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, curUser)
+		})
+
+		userRoutesGroup.POST("/fav/:cid", middlewares.Authenticate, func(c *gin.Context) {
 			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -271,7 +332,7 @@ func UserRoutes(route *gin.Engine) {
 			})
 		})
 
-		userRoutesGroup.POST("/unfav/:cid", func(c *gin.Context) {
+		userRoutesGroup.POST("/unfav/:cid", middlewares.Authenticate, func(c *gin.Context) {
 			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -314,6 +375,47 @@ func UserRoutes(route *gin.Engine) {
 			c.JSON(http.StatusOK, gin.H{
 				"message": "added to fav list",
 			})
+		})
+
+		userRoutesGroup.GET("/favList", middlewares.Authenticate, func(c *gin.Context) {
+			uid, ok := c.Get("id")
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "id missing? wtf",
+				})
+				return
+			}
+
+			var wl models.WatchList
+			if err := wl.FindByUid(uid.(primitive.ObjectID)); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			type extremeSimpleCourse struct {
+				Id   primitive.ObjectID `json:"cid"`
+				Name string             `json:"name"`
+			}
+
+			var res []extremeSimpleCourse
+			var course models.Course
+			for _, courseId := range wl.CoursesId {
+				if err := course.FindById(courseId); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "something went wrong",
+					})
+					fmt.Println(err.Error())
+					return
+				}
+				res = append(res, extremeSimpleCourse{
+					Id:   courseId,
+					Name: course.Name,
+				})
+			}
+
+			c.JSON(http.StatusOK, res)
 		})
 	}
 }
