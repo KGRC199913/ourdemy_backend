@@ -66,7 +66,6 @@ func UserRoutes(route *gin.Engine) {
 				return
 			}
 
-			//TODO SEND OTP
 			auth := LoginAuth(viper.GetString("USERNAME"), viper.GetString("PASSWORD"))
 			to := []string{"nhokbm18@gmail.com"}
 			msg := []byte("To: nhokbm18@gmail.com\r\n" +
@@ -77,7 +76,7 @@ func UserRoutes(route *gin.Engine) {
 			if err != nil {
 				panic(err.Error())
 			}
-			//END SEND OTP
+
 			c.JSON(http.StatusOK, user)
 		})
 
