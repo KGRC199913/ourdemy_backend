@@ -87,10 +87,6 @@ func Authenticate(c *gin.Context) {
 	c.Next()
 }
 
-func AdminAuthenticate(c *gin.Context) {
-	c.Next()
-}
-
 func LecturerAuthenticate(c *gin.Context) {
 	if !c.GetBool("is_lec") {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -141,5 +137,55 @@ func UrlAuthenticate(c *gin.Context) {
 
 	c.Set("id", userClaims.Id)
 	c.Set("is_lec", userClaims.IsLec)
+	c.Next()
+}
+
+func AdminAuthenticate(c *gin.Context) {
+	authToken := c.GetHeader("Authorization")
+	auths := strings.Split(authToken, "Bearer ")
+	if len(auths) < 2 {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized",
+		})
+		c.Abort()
+		return
+	}
+
+	authToken = auths[1]
+	var adminClaims ultis.AdminClaims
+	token, err := ultis.ParseAdminToken(authToken, &adminClaims)
+
+	if err != nil {
+		validationError, _ := err.(*jwt.ValidationError)
+		if validationError.Errors == jwt.ValidationErrorExpired {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "token expired",
+			})
+			c.Abort()
+			return
+		}
+
+		if err == jwt.ErrSignatureInvalid {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "unauthorized",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Abort()
+		return
+	}
+
+	if !token.Valid {
+		if err == jwt.ErrSignatureInvalid {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "unauthorized",
+			})
+			c.Abort()
+			return
+		}
+	}
+
 	c.Next()
 }
