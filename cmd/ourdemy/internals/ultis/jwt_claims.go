@@ -13,6 +13,10 @@ type UserClaims struct {
 	jwt.StandardClaims
 }
 
+type AdminClaims struct {
+	jwt.StandardClaims
+}
+
 func CreateToken(oid primitive.ObjectID, isLec bool) (string, error) {
 	userClaims := UserClaims{
 		Id:    oid,
@@ -32,6 +36,15 @@ func CreateToken(oid primitive.ObjectID, isLec bool) (string, error) {
 }
 
 func ParseToken(authToken string, claims *UserClaims) (*jwt.Token, error) {
+	return jwt.ParseWithClaims(authToken, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("wrong method")
+		}
+		return []byte(secret), nil
+	})
+}
+
+func ParseAdminToken(authToken string, claims *AdminClaims) (*jwt.Token, error) {
 	return jwt.ParseWithClaims(authToken, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("wrong method")
