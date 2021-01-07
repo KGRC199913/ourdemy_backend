@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/gin-gonic/gin"
@@ -70,7 +71,7 @@ func CourseRoutes(route *gin.Engine) {
 			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
-					"error": errors.New("course id invalid"),
+					"error": "course id invalid",
 				})
 				return
 			}
@@ -194,16 +195,45 @@ func CourseRoutes(route *gin.Engine) {
 			})
 			lecturerCourseRoutesGroup := authCourseRoutesGroup.Group("/", middlewares.LecturerAuthenticate)
 			{
+				lecturerCourseRoutesGroup.GET("/allByMe", func(c *gin.Context) {
+					uid, ok := c.Get("id")
+					if !ok {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": "id missing? wtf",
+						})
+						return
+					}
+
+					var courses []models.Course
+					courses, err := models.FindByLecId(uid.(primitive.ObjectID))
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					var full []models.FullCourse
+					for _, course := range courses {
+						fullCourse, err := course.ConvertToFullCourse()
+						if err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{
+								"error": err.Error(),
+							})
+							return
+						}
+						full = append(full, *fullCourse)
+					}
+
+					c.JSON(http.StatusOK, full)
+				})
 				lecturerCourseRoutesGroup.POST("/create", func(c *gin.Context) {
 					type courseCreateInfo struct {
-						LecId        string  `json:"lid" bson:"lid" form:"lid" binding:"required"`
-						CatId        string  `json:"cid" bson:"cat_id" form:"cid" binding:"required"`
-						Name         string  `json:"name" bson:"name" form:"name" binding:"required"`
-						ShortDesc    string  `json:"short_desc" bson:"short_desc" form:"short_desc" binding:"required"`
-						FullDesc     string  `json:"full_desc" bson:"full_desc" form:"full_desc" binding:"required"`
-						Fee          float64 `json:"fee" bson:"fee" form:"fee" binding:"required"`
-						Discount     float64 `json:"discount" bson:"discount" form:"discount"`
-						ChapterCount int     `json:"chapter_count" bson:"chapter_count" form:"chapter_count" binding:"required"`
+						CatId     string  `json:"cid" bson:"cat_id" form:"cid" binding:"required"`
+						Name      string  `json:"name" bson:"name" form:"name" binding:"required"`
+						ShortDesc string  `json:"short_desc" bson:"short_desc" form:"short_desc"`
+						FullDesc  string  `json:"full_desc" bson:"full_desc" form:"full_desc"`
+						Fee       float64 `json:"fee" bson:"fee" form:"fee" binding:"required"`
 					}
 
 					var courseInfo courseCreateInfo
@@ -274,13 +304,14 @@ func CourseRoutes(route *gin.Engine) {
 						}
 					}
 
-					lid, err := primitive.ObjectIDFromHex(courseInfo.LecId)
-					if err != nil {
-						c.JSON(http.StatusBadRequest, gin.H{
-							"error": err.Error(),
+					uid, ok := c.Get("id")
+					if !ok {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": "id missing? wtf",
 						})
 						return
 					}
+					lid := uid.(primitive.ObjectID)
 
 					cid, err := primitive.ObjectIDFromHex(courseInfo.CatId)
 					if err != nil {
@@ -298,8 +329,8 @@ func CourseRoutes(route *gin.Engine) {
 						ShortDesc:    courseInfo.ShortDesc,
 						FullDesc:     courseInfo.FullDesc,
 						Fee:          courseInfo.Fee,
-						Discount:     courseInfo.Discount,
-						ChapterCount: courseInfo.ChapterCount,
+						Discount:     1.0,
+						ChapterCount: 0,
 					}
 
 					if err := course.Save(); err != nil {
@@ -312,14 +343,15 @@ func CourseRoutes(route *gin.Engine) {
 				})
 				lecturerCourseRoutesGroup.POST("/update/:cid", func(c *gin.Context) {
 					type updateCourseDescData struct {
-						Short string `json:"short_desc" form:"short_desc" binding:"required"`
-						Full  string `json:"full_desc" form:"full_desc" binding:"required"`
+						Short    string  `json:"short_desc" form:"short_desc" binding:"required"`
+						Full     string  `json:"full_desc" form:"full_desc" binding:"required"`
+						Discount float64 `json:"discount" form:"discount" binding:"required"`
 					}
 
 					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 					if err != nil {
 						c.JSON(http.StatusBadRequest, gin.H{
-							"error": errors.New("course id invalid"),
+							"error": "course id invalid",
 						})
 						return
 					}
@@ -340,6 +372,23 @@ func CourseRoutes(route *gin.Engine) {
 						return
 					}
 
+					uid, ok := c.Get("id")
+					if !ok {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": "id missing? wtf",
+						})
+						return
+					}
+					lid := uid.(primitive.ObjectID)
+
+					if course.LecId != lid {
+						c.JSON(http.StatusUnauthorized, gin.H{
+							"error": "not owned this course",
+						})
+
+						return
+					}
+
 					if err := course.UpdateCourseDesc(updateData.Short, updateData.Full); err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{
 							"error": err.Error(),
@@ -347,7 +396,23 @@ func CourseRoutes(route *gin.Engine) {
 						return
 					}
 
-					c.JSON(http.StatusOK, course)
+					if err := course.UpdateDiscount(updateData.Discount); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					full, err := course.ConvertToFullCourse()
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": "something when wrong",
+						})
+						fmt.Println(err.Error())
+						return
+					}
+
+					c.JSON(http.StatusOK, full)
 				})
 				lecturerCourseRoutesGroup.POST("/markDone/:cid", func(c *gin.Context) {
 					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
@@ -419,7 +484,6 @@ func CourseRoutes(route *gin.Engine) {
 						"message": "marked as undone",
 					})
 				})
-
 				lecturerCourseRoutesGroup.POST("/chapter", func(c *gin.Context) {
 					var chapter models.CourseChapter
 					if err := c.ShouldBind(&chapter); err != nil {
@@ -435,6 +499,8 @@ func CourseRoutes(route *gin.Engine) {
 						})
 						return
 					}
+
+					chapter.Videos = []models.VideoMetadata{}
 
 					c.JSON(http.StatusOK, chapter)
 				})
