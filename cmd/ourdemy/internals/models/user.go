@@ -9,6 +9,7 @@ import (
 	"github.com/thanhpk/randstr"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"strings"
 	"time"
 )
 
@@ -96,7 +97,7 @@ func (u *User) GenerateOtp() error {
 		return errors.New("otp is already generated")
 	}
 
-	u.CurOtp = randstr.Hex(4)
+	u.CurOtp = strings.ToUpper(randstr.Hex(4))
 	u.LastOtpUpdated = time.Now()
 	u.CurOtpExpiredTime = time.Now().Add(time.Minute * 30)
 
@@ -137,7 +138,7 @@ func (u *User) UpdateOtp(username string) (*string, error) {
 		return nil, errors.New("otp request too frequent")
 	}
 
-	newOtp := randstr.Hex(4)
+	newOtp := strings.ToUpper(randstr.Hex(4))
 
 	return &newOtp, db.Collection(u.collName()).UpdateOne(ctx, bson.M{
 		"_id": u.Id,

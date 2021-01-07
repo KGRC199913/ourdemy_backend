@@ -70,8 +70,8 @@ func UserRoutes(route *gin.Engine) {
 			to := []string{user.Email}
 			msg := []byte("To: " + user.Email + "\r\n" +
 				"Subject: Ourdemy Announcement\r\n" +
-				"\r\n" + "Otp: " +
-				user.CurOtp + "\nExpired Time: " + user.CurOtpExpiredTime.String() + "\r\n")
+				"\r\n" + "OTP: " +
+				user.CurOtp + "\nExpired Time: " + user.CurOtpExpiredTime.Format("2006-01-02 15:04:05") + "\r\n")
 			err := smtp.SendMail("smtp.gmail.com:587", auth, viper.GetString("USERNAME"), to, msg)
 			if err != nil {
 				panic(err.Error())
