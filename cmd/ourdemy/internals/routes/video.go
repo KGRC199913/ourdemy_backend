@@ -83,7 +83,7 @@ func VideoRoutes(route *gin.Engine) {
 		}
 		lecVidRoutesGroup := videoRoutesGroup.Group("/", middlewares.Authenticate, middlewares.LecturerAuthenticate)
 		{
-			lecVidRoutesGroup.PUT("/:cid/:ccid", func(c *gin.Context) {
+			lecVidRoutesGroup.PUT("/upload/:cid/:ccid", func(c *gin.Context) {
 				type uploadVidData struct {
 					Title string `json:"title" form:"title" binding:"required"`
 				}
@@ -91,7 +91,7 @@ func VideoRoutes(route *gin.Engine) {
 				cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
-						"error": errors.New("course id invalid"),
+						"error": "course id invalid",
 					})
 					return
 				}
@@ -99,7 +99,7 @@ func VideoRoutes(route *gin.Engine) {
 				ccid, err := primitive.ObjectIDFromHex(c.Param("ccid"))
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
-						"error": errors.New("course chapter id invalid"),
+						"error": "course chapter id invalid",
 					})
 					return
 				}
@@ -115,7 +115,7 @@ func VideoRoutes(route *gin.Engine) {
 				var course models.Course
 				if err := course.FindById(cid); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
-						"error": errors.New("course not exist"),
+						"error": "course not exist",
 					})
 					return
 				}
@@ -123,14 +123,14 @@ func VideoRoutes(route *gin.Engine) {
 				lecid, exist := c.Get("id")
 				if !exist {
 					c.JSON(http.StatusInternalServerError, gin.H{
-						"error": errors.New("something went wrong"),
+						"error": "something went wrong",
 					})
 					return
 				}
 
 				if course.LecId != lecid.(primitive.ObjectID) {
 					c.JSON(http.StatusBadRequest, gin.H{
-						"error": errors.New("course does not belong to you"),
+						"error": "course does not belong to you",
 					})
 					return
 				}
@@ -138,14 +138,14 @@ func VideoRoutes(route *gin.Engine) {
 				var courseChapter models.CourseChapter
 				if err := courseChapter.FindById(ccid); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
-						"error": errors.New("chapter not exist"),
+						"error": "chapter not exist",
 					})
 					return
 				}
 
 				if courseChapter.CourseId != course.Id {
 					c.JSON(http.StatusBadRequest, gin.H{
-						"error": errors.New("invalid chapter id"),
+						"error": "invalid chapter id",
 					})
 					return
 				}
@@ -153,7 +153,7 @@ func VideoRoutes(route *gin.Engine) {
 				ff, err := c.FormFile("vid")
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
-						"error": errors.New("video missing"),
+						"error": "video missing",
 					})
 					return
 				}
@@ -185,6 +185,8 @@ func VideoRoutes(route *gin.Engine) {
 					})
 					return
 				}
+				defer target.Close()
+
 				_, err = io.Copy(target, f)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
@@ -413,9 +415,7 @@ func VideoRoutes(route *gin.Engine) {
 					return
 				}
 
-				c.JSON(http.StatusOK, gin.H{
-					"message": "remove video successfully",
-				})
+				c.JSON(http.StatusOK, vm)
 			})
 		}
 	}

@@ -25,10 +25,11 @@ type Course struct {
 }
 
 type CourseChapter struct {
-	field.DefaultField `bson:",inline"`
+	field.DefaultField `bson:",inline" json:",inline"`
 	CourseId           primitive.ObjectID `json:"cid" bson:"cid" binding:"required"`
 	Title              string             `json:"title" bson:"title" binding:"required"`
 	Previewable        *bool              `json:"previewable" bson:"previewable" binding:"required"`
+	Videos             []VideoMetadata    `json:"videos" bson:"-" binding:"-"`
 }
 
 type VideoMetadata struct {
@@ -38,7 +39,7 @@ type VideoMetadata struct {
 	Title              string             `json:"title" bson:"title"`
 }
 
-type simpleCourse struct {
+type SimpleCourse struct {
 	Id           string  `json:"id"`
 	Title        string  `json:"title"`
 	CategoryId   string  `json:"cid"`
@@ -50,22 +51,21 @@ type simpleCourse struct {
 	CurrentPrice float64 `json:"current_price"`
 }
 
-type fullCourse struct {
-	Id              string          `json:"id"`
-	Title           string          `json:"title"`
-	CategoryId      string          `json:"cid"`
-	Category        string          `json:"category"`
-	LecturerId      string          `json:"lid"`
-	Lecturer        string          `json:"lecturer"`
-	ReviewScore     float32         `json:"review_score"`
-	Ava             string          `json:"ava"`
-	Fee             float64         `json:"fee" bson:"fee"`
-	Discount        float64         `json:"discount" bson:"discount"`
-	ShortDesc       string          `json:"short_desc" bson:"short_desc"`
-	FullDesc        string          `json:"full_desc" bson:"full_desc"`
-	IsDone          bool            `json:"is_done"`
-	Chapters        []CourseChapter `json:"ch"`
-	PreviewChapters []CourseChapter `json:"pch"`
+type FullCourse struct {
+	Id          string          `json:"id"`
+	Title       string          `json:"title"`
+	CategoryId  string          `json:"cid"`
+	Category    string          `json:"category"`
+	LecturerId  string          `json:"lid"`
+	Lecturer    string          `json:"lecturer"`
+	ReviewScore float32         `json:"review_score"`
+	Ava         string          `json:"ava"`
+	Fee         float64         `json:"fee" bson:"fee"`
+	Discount    float64         `json:"discount" bson:"discount"`
+	ShortDesc   string          `json:"short_desc" bson:"short_desc"`
+	FullDesc    string          `json:"full_desc" bson:"full_desc"`
+	IsDone      bool            `json:"is_done"`
+	Chapters    []CourseChapter `json:"chapters"`
 }
 
 func (Course) collName() string {
@@ -129,7 +129,7 @@ func FindAllChapterByCatId(cid primitive.ObjectID) ([]CourseChapter, error) {
 
 func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
 	var res []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"lid": lid}).All(res)
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"lid": lid}).All(&res)
 	return res, err
 }
 
@@ -142,6 +142,17 @@ func (c *Course) UpdateCourseDesc(short string, full string) error {
 		"$set": bson.M{
 			"short_desc": short,
 			"full_desc":  full,
+		},
+	})
+}
+
+func (c *Course) UpdateDiscount(discount float64) error {
+	c.Discount = discount
+	return db.Collection(c.collName()).UpdateOne(ctx, bson.M{
+		"_id": c.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"discount": discount,
 		},
 	})
 }
@@ -202,7 +213,7 @@ func FindAllVideoMetadataByChapterId(ccid primitive.ObjectID) ([]VideoMetadata, 
 	return res, nil
 }
 
-func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
+func (c *Course) ConvertToSimpleCourse() (*SimpleCourse, error) {
 	category := Category{}
 	if err := category.FindCategoryById(c.CatId); err != nil {
 		return nil, err
@@ -219,7 +230,7 @@ func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
 		return nil, err
 	}
 
-	return &simpleCourse{
+	return &SimpleCourse{
 		Id:           c.Id.String(),
 		Title:        c.Name,
 		CategoryId:   c.CatId.String(),
@@ -232,7 +243,7 @@ func (c *Course) ConvertToSimpleCourse() (*simpleCourse, error) {
 	}, nil
 }
 
-func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
+func (c *Course) ConvertToFullCourse() (*FullCourse, error) {
 	category := SubCategory{}
 	if err := category.FindSubCategoryById(c.CatId); err != nil {
 		return nil, err
@@ -254,29 +265,35 @@ func (c *Course) ConvertToFullCourse() (*fullCourse, error) {
 		return nil, err
 	}
 
-	var previewableCc []CourseChapter
-	for _, cc := range chapters {
-		if *cc.Previewable {
-			previewableCc = append(previewableCc, cc)
+	if chapters == nil {
+		chapters = []CourseChapter{}
+	}
+
+	for index, _ := range chapters {
+		chapters[index].Videos, err = FindAllVideoMetadataByChapterId(chapters[index].Id)
+		if err != nil {
+			return nil, err
+		}
+		if chapters[index].Videos == nil {
+			chapters[index].Videos = []VideoMetadata{}
 		}
 	}
 
-	return &fullCourse{
-		Id:              c.Id.String(),
-		Title:           c.Name,
-		CategoryId:      c.CatId.String(),
-		Category:        category.Name,
-		LecturerId:      c.LecId.String(),
-		Lecturer:        lecturer.Fullname,
-		ReviewScore:     reviewScore,
-		Ava:             c.Ava,
-		Fee:             c.Fee,
-		Discount:        c.Discount,
-		ShortDesc:       c.ShortDesc,
-		FullDesc:        c.FullDesc,
-		IsDone:          c.IsDone,
-		Chapters:        chapters,
-		PreviewChapters: previewableCc,
+	return &FullCourse{
+		Id:          c.Id.String(),
+		Title:       c.Name,
+		CategoryId:  c.CatId.String(),
+		Category:    category.Name,
+		LecturerId:  c.LecId.String(),
+		Lecturer:    lecturer.Fullname,
+		ReviewScore: reviewScore,
+		Ava:         c.Ava,
+		Fee:         c.Fee,
+		Discount:    c.Discount,
+		ShortDesc:   c.ShortDesc,
+		FullDesc:    c.FullDesc,
+		IsDone:      c.IsDone,
+		Chapters:    chapters,
 	}, nil
 }
 
