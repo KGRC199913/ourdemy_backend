@@ -41,6 +41,42 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 }
 
 func UserRoutes(route *gin.Engine) {
+	adminRoutesGroup := route.Group("/admin")
+	{
+		adminRoutesGroup.POST("/signin", func(c *gin.Context) {
+			type signinAdmin struct {
+				Username string `json:"username" binding:"required"`
+				Password string `json:"password" binding:"required"`
+			}
+			var curSigninAdmin signinAdmin
+			if err := c.ShouldBind(&curSigninAdmin); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			if curSigninAdmin.Password != viper.GetString("ADMIN_PASSWORD") {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "Wrong Password",
+				})
+				return
+			}
+
+			accessToken, err := ultis.CreateAdminToken()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"accessToken": accessToken,
+			})
+		})
+	}
+
 	userRoutesGroup := route.Group("/users")
 	{
 		userRoutesGroup.POST("/signup", func(c *gin.Context) {
