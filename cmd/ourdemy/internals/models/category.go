@@ -97,10 +97,14 @@ func (subcat *SubCategory) FindSubCategoryById(oid primitive.ObjectID) error {
 	return db.Collection(subcat.collName()).Find(ctx, bson.M{"_id": oid}).One(subcat)
 }
 
-func FindByParentCategoryId(ParentCatId primitive.ObjectID) (subcats []SubCategory, err error) {
-	err = db.Collection(SubCategory{}.collName()).Find(ctx, bson.M{"parentCategoryId": ParentCatId}).All(&subcats)
+func FindByParentCategoryId(ParentCatId primitive.ObjectID) ([]SubCategory, error) {
+	var subcats []SubCategory
+	err := db.Collection(SubCategory{}.collName()).Find(ctx, bson.M{"parentCategoryId": ParentCatId}).All(&subcats)
 	if err != nil {
 		return nil, err
+	}
+	if subcats == nil {
+		subcats = []SubCategory{}
 	}
 	return subcats, nil
 }

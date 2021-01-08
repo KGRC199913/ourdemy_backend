@@ -96,6 +96,142 @@ func CourseRoutes(route *gin.Engine) {
 		})
 
 		courseRoutesGroup.GET("/search", func(c *gin.Context) {
+			keyword := c.DefaultQuery("keyword", "")
+
+			limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "limit invalid",
+				})
+
+				return
+			}
+			offset, err := strconv.Atoi(c.DefaultQuery("offset", "0"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "offset invalid",
+				})
+
+				return
+			}
+
+			res, err := models.SearchByKeyword(keyword, int64(limit), int64(offset))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "something when wrong",
+				})
+
+				return
+			}
+
+			catId := c.DefaultQuery("catId", "")
+			if catId == "" {
+				subcatId := c.DefaultQuery("subcatId", "")
+				if subcatId == "" {
+					var r []models.SimpleCourse
+					for _, item := range res {
+						data, err := item.ConvertToSimpleCourse()
+						if err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{
+								"error": "something went wrong",
+							})
+
+							return
+						}
+
+						r = append(r, *data)
+					}
+
+					if r == nil {
+						r = []models.SimpleCourse{}
+					}
+
+					c.JSON(http.StatusOK, r)
+					return
+				}
+
+				var filteredRes []models.Course
+				for _, item := range res {
+					if item.CatId.Hex() == subcatId {
+						filteredRes = append(filteredRes, item)
+					}
+				}
+
+				if filteredRes == nil {
+					filteredRes = []models.Course{}
+				}
+
+				var r []models.SimpleCourse
+				for _, item := range filteredRes {
+					data, err := item.ConvertToSimpleCourse()
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": "something went wrong",
+						})
+
+						return
+					}
+
+					r = append(r, *data)
+				}
+
+				if r == nil {
+					r = []models.SimpleCourse{}
+				}
+
+				c.JSON(http.StatusOK, r)
+				return
+			}
+
+			var filteredRes []models.Course
+			catOid, err := primitive.ObjectIDFromHex(catId)
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "not found",
+				})
+				return
+			}
+
+			subcats, err := models.FindByParentCategoryId(catOid)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "something went wrong",
+				})
+				return
+			}
+
+			for _, item := range res {
+				if ContainsSubcatId(subcats, item.CatId) {
+					filteredRes = append(filteredRes, item)
+				}
+			}
+
+			if filteredRes == nil {
+				filteredRes = []models.Course{}
+			}
+
+			var r []models.SimpleCourse
+			for _, item := range filteredRes {
+				data, err := item.ConvertToSimpleCourse()
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "something went wrong",
+					})
+
+					return
+				}
+
+				r = append(r, *data)
+			}
+
+			if r == nil {
+				r = []models.SimpleCourse{}
+			}
+
+			c.JSON(http.StatusOK, r)
+		})
+
+		courseRoutesGroup.GET("/searchByCatId", func(c *gin.Context) {
 			catId, err := primitive.ObjectIDFromHex(c.Query("catId"))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
@@ -551,4 +687,13 @@ func CourseRoutes(route *gin.Engine) {
 			}
 		}
 	}
+}
+
+func ContainsSubcatId(s []models.SubCategory, e primitive.ObjectID) bool {
+	for _, a := range s {
+		if a.Id == e {
+			return true
+		}
+	}
+	return false
 }
