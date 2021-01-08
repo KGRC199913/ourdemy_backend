@@ -2,6 +2,7 @@ package routes
 
 import (
 	"errors"
+	"fmt"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/gin-gonic/gin"
@@ -42,7 +43,7 @@ func VideoRoutes(route *gin.Engine) {
 
 			c.JSON(http.StatusOK, vms)
 		})
-		authenVidRoutesGroup := videoRoutesGroup.Group("/", middlewares.Authenticate)
+		authenVidRoutesGroup := videoRoutesGroup.Group("/", middlewares.UrlAuthenticate)
 		{
 			authenVidRoutesGroup.GET("/download/:vid", func(c *gin.Context) {
 				uid, exist := c.Get("id")
@@ -54,6 +55,7 @@ func VideoRoutes(route *gin.Engine) {
 				}
 
 				ouid := uid.(primitive.ObjectID)
+				fmt.Println(ouid)
 
 				vid, err := primitive.ObjectIDFromHex(c.Param("vid"))
 				if err != nil {
@@ -71,12 +73,13 @@ func VideoRoutes(route *gin.Engine) {
 					return
 				}
 
-				if !models.IsUserJoined(vm.CourseId, ouid) {
-					c.JSON(http.StatusForbidden, gin.H{
-						"error": errors.New("didn't join this course"),
-					})
-					return
-				}
+				//TEMP DISABLE FOR THE SAKE OF TESTING
+				//if !models.IsUserJoined(vm.CourseId, ouid) {
+				//	c.JSON(http.StatusForbidden, gin.H{
+				//		"error": errors.New("didn't join this course"),
+				//	})
+				//	return
+				//}
 
 				c.File("vid/" + vm.Id.Hex())
 			})

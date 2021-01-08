@@ -37,7 +37,7 @@ func CreateToken(oid primitive.ObjectID, isLec bool) (string, error) {
 		Id:    oid,
 		IsLec: isLec,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+			ExpiresAt: time.Now().Add(time.Hour * 3600).Unix(),
 		},
 	}
 
