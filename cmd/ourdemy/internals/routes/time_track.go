@@ -28,9 +28,9 @@ func TimeMark(route *gin.Engine) {
 			c.JSON(http.StatusOK, timeMark.CurTime)
 		})
 
-		timeMarkRoutesGroup.POST("/update/:vid", middlewares.Authenticate, func(c *gin.Context) {
+		timeMarkRoutesGroup.POST("/:vid", middlewares.Authenticate, func(c *gin.Context) {
 			type upsertTimeMark struct {
-				CurTime int64 `json:"cur_time" binding:"required"`
+				CurTime int `json:"cur_time"`
 			}
 			var curTimeMark upsertTimeMark
 			if err := c.ShouldBind(&curTimeMark); err != nil {
@@ -54,7 +54,7 @@ func TimeMark(route *gin.Engine) {
 			if err := timeMark.FindByVideoId(vid); err != nil {
 				timeMark.UserId = curUserId.(primitive.ObjectID)
 				timeMark.VideoId = vid
-				timeMark.CurTime = curTimeMark.CurTime
+				timeMark.CurTime = int64(curTimeMark.CurTime)
 
 				if err := timeMark.Save(); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
@@ -64,7 +64,7 @@ func TimeMark(route *gin.Engine) {
 				}
 			}
 
-			if err := timeMark.UpdateTimeMark(curTimeMark.CurTime); err != nil {
+			if err := timeMark.UpdateTimeMark(int64(curTimeMark.CurTime)); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": err.Error(),
 				})
