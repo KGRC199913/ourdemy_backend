@@ -184,6 +184,11 @@ func SearchByKeyword(keyword string, limit int64, offset int64) ([]Course, error
 			[]bson.E{
 				{"$text", bson.D{{"$search", keyword}}}}}},
 	}).All(&res)
+
+	if res == nil {
+		res = []Course{}
+	}
+
 	return paginateCourse(res, offset, limit), err
 }
 
@@ -224,8 +229,8 @@ func FindAllVideoMetadataByChapterId(ccid primitive.ObjectID) ([]VideoMetadata, 
 }
 
 func (c *Course) ConvertToSimpleCourse() (*SimpleCourse, error) {
-	category := Category{}
-	if err := category.FindCategoryById(c.CatId); err != nil {
+	subcat := SubCategory{}
+	if err := subcat.FindSubCategoryById(c.CatId); err != nil {
 		return nil, err
 	}
 
@@ -244,7 +249,7 @@ func (c *Course) ConvertToSimpleCourse() (*SimpleCourse, error) {
 		Id:           c.Id.String(),
 		Title:        c.Name,
 		CategoryId:   c.CatId.String(),
-		Category:     category.Name,
+		Category:     subcat.Name,
 		LecturerId:   c.LecId.String(),
 		Lecturer:     lecturer.Fullname,
 		ReviewScore:  reviewScore,
