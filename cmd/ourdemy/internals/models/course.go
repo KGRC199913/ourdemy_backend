@@ -177,6 +177,16 @@ func (c *Course) UpdateChapterCount(count int) error {
 	})
 }
 
+func SearchByKeyword(keyword string, limit int64, offset int64) ([]Course, error) {
+	var res []Course
+	err := db.Collection(Course{}.collName()).Aggregate(ctx, mongo.Pipeline{
+		bson.D{{"$match",
+			[]bson.E{
+				{"$text", bson.D{{"$search", keyword}}}}}},
+	}).All(&res)
+	return paginateCourse(res, offset, limit), err
+}
+
 func FindByCatId(cid primitive.ObjectID, limit int64, offset int64) ([]Course, error) {
 	var res []Course
 	subCats, err := FindByParentCategoryId(cid)
@@ -367,4 +377,17 @@ func (cc *CourseChapter) AfterRemove() error {
 	}
 
 	return nil
+}
+
+func paginateCourse(x []Course, offset int64, limit int64) []Course {
+	if offset > int64(len(x)) {
+		offset = int64(len(x))
+	}
+
+	end := offset + limit
+	if end > int64(len(x)) {
+		end = int64(len(x))
+	}
+
+	return x[offset:end]
 }

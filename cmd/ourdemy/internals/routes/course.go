@@ -96,6 +96,38 @@ func CourseRoutes(route *gin.Engine) {
 		})
 
 		courseRoutesGroup.GET("/search", func(c *gin.Context) {
+			keyword := c.DefaultQuery("keyword", "")
+
+			limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "limit invalid",
+				})
+
+				return
+			}
+			offset, err := strconv.Atoi(c.DefaultQuery("offset", "0"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "offset invalid",
+				})
+
+				return
+			}
+
+			res, err := models.SearchByKeyword(keyword, int64(limit), int64(offset))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "something when wrong",
+				})
+
+				return
+			}
+
+			c.JSON(http.StatusOK, res)
+		})
+
+		courseRoutesGroup.GET("/searchByCatId", func(c *gin.Context) {
 			catId, err := primitive.ObjectIDFromHex(c.Query("catId"))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
