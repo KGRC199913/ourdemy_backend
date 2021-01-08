@@ -17,6 +17,21 @@ type AdminClaims struct {
 	jwt.StandardClaims
 }
 
+func CreateAdminToken() (string, error) {
+	adminClaims := AdminClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().AddDate(1, 0, 0).Unix(),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, adminClaims)
+	signed, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return "", err
+	}
+
+	return signed, nil
+}
+
 func CreateToken(oid primitive.ObjectID, isLec bool) (string, error) {
 	userClaims := UserClaims{
 		Id:    oid,
