@@ -45,5 +45,29 @@ func AdminRoutes(route *gin.Engine) {
 				c.JSON(http.StatusInternalServerError, err.Error())
 			}
 		})
+		adminroutesGroup.DELETE("/promote/:id", func(c *gin.Context) {
+			var appr models.Approve
+			id := c.Param("id")
+			oid, err := primitive.ObjectIDFromHex(id)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, err.Error())
+				return
+			}
+			if err := appr.FindByLecId(oid); err != nil {
+				c.JSON(http.StatusInternalServerError, err.Error())
+				return
+			}
+			var user models.User
+
+			if err := user.FindById(appr.LecId); err != nil {
+				c.JSON(http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			if err := appr.Remove(); err != nil {
+				c.JSON(http.StatusInternalServerError, err.Error())
+			}
+		})
+
 	}
 }

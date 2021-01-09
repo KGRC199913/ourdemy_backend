@@ -69,75 +69,192 @@ func CategoryRoutes(route *gin.Engine) {
 			c.JSON(http.StatusOK, res)
 		})
 
-		categoryRoutesGroup.POST("/create", middlewares.AdminAuthenticate, func(c *gin.Context) {
-			var cat models.Category
-			if err := c.ShouldBind(&cat); err != nil {
+		categoryRoutesGroup.GET("/sub/:catName", func(c *gin.Context) {
+			catName := c.Param("catName")
+			if catName == "" {
 				c.JSON(http.StatusBadRequest, gin.H{
-					"error": err.Error(),
+					"error": "wrong params",
 				})
 				return
 			}
 
-			if err := cat.Save(); err != nil {
-				c.JSON(http.StatusInternalServerError, err)
-				fmt.Println(err)
+			subcats, err := models.FindSubcatsByCatName(catName)
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"errors": "not found",
+				})
 				return
 			}
-			c.JSON(http.StatusOK, cat)
+
+			c.JSON(http.StatusOK, subcats)
 		})
 
-		subcatRoutesGroup := categoryRoutesGroup.Group("/sub")
+		adminCatsGroup := categoryRoutesGroup.Group("/admin", middlewares.AdminAuthenticate)
 		{
-			subcatRoutesGroup.GET("/:catName", func(c *gin.Context) {
-				catName := c.Param("catName")
-				if catName == "" {
+			adminCatsGroup.POST("/create", func(c *gin.Context) {
+				var cat models.Category
+				if err := c.ShouldBind(&cat); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
-						"error": "wrong params",
+						"error": err.Error(),
 					})
 					return
 				}
 
-				subcats, err := models.FindSubcatsByCatName(catName)
-				if err != nil {
-					c.JSON(http.StatusNotFound, gin.H{
-						"errors": "not found",
-					})
+				if err := cat.Save(); err != nil {
+					c.JSON(http.StatusInternalServerError, err)
+					fmt.Println(err)
 					return
 				}
-
-				c.JSON(http.StatusOK, subcats)
+				c.JSON(http.StatusOK, cat)
 			})
-			subcatRoutesGroup.POST("/create", middlewares.AdminAuthenticate, func(c *gin.Context) {
-				type subcatCreate struct {
-					Name       string `json:"name" binding:"required"`
-					ParentName string `json:"parent_name" binding:"required"`
+			adminCatsGroup.POST("/update", func(c *gin.Context) {
+				type updateCatInfo struct {
+					Name string             `json:"name" binding:"required"`
+					Id   primitive.ObjectID `json:"id" binding:"required"`
 				}
 
-				var subcatCreateInfo subcatCreate
-				if err := c.ShouldBind(&subcatCreateInfo); err != nil {
+				var info updateCatInfo
+				if err := c.ShouldBind(&info); err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
 						"error": err.Error(),
 					})
 					return
 				}
 
-				subCat, err := models.CreateSubCategory(subcatCreateInfo.Name, subcatCreateInfo.ParentName)
+				var cat models.Category
+				if err := cat.FindCategoryById(info.Id); err != nil {
+					c.JSON(http.StatusNotFound, gin.H{
+						"error": "cat not found",
+					})
+
+					return
+				}
+
+				if err := cat.UpdateName(info.Name); err != nil {
+					c.JSON(http.StatusInternalServerError, err)
+					fmt.Println(err)
+					return
+				}
+
+				c.JSON(http.StatusOK, cat)
+			})
+
+			adminCatsGroup.DELETE("/delete/:cid", func(c *gin.Context) {
+				cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
+						"error": "cat id invalid",
+					})
+					return
+				}
+
+				var cat models.Category
+				if err := cat.FindCategoryById(cid); err != nil {
+					c.JSON(http.StatusNotFound, gin.H{
 						"error": err.Error(),
 					})
 					return
 				}
 
-				if err := subCat.Save(); err != nil {
+				courses, _ := models.FindAllCourseByCatId(cid)
+				if courses != nil {
+					c.JSON(http.StatusForbidden, gin.H{
+						"error": "category not empty, please remove all course related to this cat first",
+					})
+
+					return
+				}
+
+				err = cat.Remove()
+				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
 						"error": err.Error(),
 					})
 					return
 				}
 
-				c.JSON(http.StatusOK, subCat)
+				c.JSON(http.StatusOK, gin.H{
+					"Id": cat.Id,
+				})
 			})
+			subcatRoutesGroup := adminCatsGroup.Group("/sub")
+			{
+				subcatRoutesGroup.POST("/create", middlewares.AdminAuthenticate, func(c *gin.Context) {
+					type subcatCreate struct {
+						Name       string `json:"name" binding:"required"`
+						ParentName string `json:"parent_name" binding:"required"`
+					}
+
+					var subcatCreateInfo subcatCreate
+					if err := c.ShouldBind(&subcatCreateInfo); err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					subCat, err := models.CreateSubCategory(subcatCreateInfo.Name, subcatCreateInfo.ParentName)
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					if err := subCat.Save(); err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, gin.H{
+						"scid":    subCat.Id,
+						"name":    subCat.Name,
+						"catName": subcatCreateInfo.ParentName,
+					})
+				})
+				subcatRoutesGroup.DELETE("/delete/:scid", middlewares.AdminAuthenticate, func(c *gin.Context) {
+					scid, err := primitive.ObjectIDFromHex(c.Param("scid"))
+					if err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": "cat id invalid",
+						})
+						return
+					}
+
+					var sbcat models.SubCategory
+					if err := sbcat.FindSubCategoryById(scid); err != nil {
+						c.JSON(http.StatusNotFound, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					courses, _ := models.FindAllCourseBySubcatId(scid)
+					if courses != nil {
+						c.JSON(http.StatusForbidden, gin.H{
+							"error": "subcategory not empty, please remove all course related to this subcat first",
+						})
+
+						return
+					}
+
+					err = sbcat.Remove()
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					c.JSON(http.StatusOK, gin.H{
+						"Id":  sbcat.Id,
+						"Cid": sbcat.ParentCategoryId,
+					})
+				})
+			}
 		}
+
 	}
 }

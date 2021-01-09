@@ -40,6 +40,25 @@ func (cat *Category) FindCategoryById(oid primitive.ObjectID) error {
 	return db.Collection(cat.collName()).Find(ctx, bson.M{"_id": oid}).One(cat)
 }
 
+func (cat *Category) UpdateName(name string) error {
+	cat.Name = name
+	return db.Collection(cat.collName()).UpdateOne(ctx, bson.M{
+		"_id": cat.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"name": cat.Name,
+		},
+	})
+}
+
+func (cat *Category) Remove() error {
+	return db.Collection(cat.collName()).RemoveId(ctx, cat.Id)
+}
+
+func (subcat *SubCategory) Remove() error {
+	return db.Collection(subcat.collName()).RemoveId(ctx, subcat.Id)
+}
+
 func GetAllCategory() (cats []Category, err error) {
 	err = db.Collection(Category{}.collName()).Find(ctx, bson.M{}).All(&cats)
 	if err != nil {

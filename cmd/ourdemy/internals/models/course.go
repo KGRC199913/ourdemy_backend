@@ -210,6 +210,31 @@ func FindByCatId(cid primitive.ObjectID, limit int64, offset int64) ([]Course, e
 	return res, err
 }
 
+func FindAllCourseByCatId(cid primitive.ObjectID) ([]Course, error) {
+	var res []Course
+	subCats, err := FindByParentCategoryId(cid)
+	if err != nil {
+		return nil, err
+	}
+
+	var courses []Course
+	for _, subCat := range subCats {
+		err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subCat.Id}).All(&courses)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, courses...)
+	}
+	return res, err
+}
+
+func FindAllCourseBySubcatId(scid primitive.ObjectID) ([]Course, error) {
+	var res []Course
+
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": scid}).All(&res)
+	return res, err
+}
+
 func FindBySubcatId(subcatId primitive.ObjectID, limit int64, offset int64) ([]Course, error) {
 	var res []Course
 	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subcatId}).Skip(offset).Limit(limit).All(&res)
