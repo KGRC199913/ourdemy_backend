@@ -44,7 +44,7 @@ func CourseRoutes(route *gin.Engine) {
 			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
-					"error": errors.New("course id invalid"),
+					"error": "course id invalid",
 				})
 				return
 			}

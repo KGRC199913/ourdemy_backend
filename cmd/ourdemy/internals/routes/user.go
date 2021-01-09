@@ -56,9 +56,16 @@ func UserRoutes(route *gin.Engine) {
 				return
 			}
 
+			if curSigninAdmin.Username != viper.GetString("ADMIN_USERNAME") {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "invalid login",
+				})
+				return
+			}
+
 			if curSigninAdmin.Password != viper.GetString("ADMIN_PASSWORD") {
 				c.JSON(http.StatusNotFound, gin.H{
-					"error": "Wrong Password",
+					"error": "invalid login",
 				})
 				return
 			}
