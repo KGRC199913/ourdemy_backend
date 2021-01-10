@@ -215,7 +215,14 @@ func UserRoutes(route *gin.Engine) {
 			err := scrypt.CompareHashAndPassword([]byte(curUser.HPassword), []byte(curSigninUser.Password))
 			if err != nil {
 				c.JSON(http.StatusNotFound, gin.H{
-					"error": "Wrong Password",
+					"error": "Login failed",
+				})
+				return
+			}
+
+			if curUser.IsBanned {
+				c.JSON(http.StatusForbidden, gin.H{
+					"error": "Your account has been banned, please contact admin",
 				})
 				return
 			}

@@ -11,7 +11,7 @@ import (
 func LecturerRoutes(route *gin.Engine) {
 	lecRoutesGroup := route.Group("/lecturers", middlewares.Authenticate)
 	{
-		lecRoutesGroup.GET("/promote", func(c *gin.Context) {
+		lecRoutesGroup.POST("/promote", func(c *gin.Context) {
 			id, ok := c.Get("id")
 			if !ok {
 				c.JSON(http.StatusInternalServerError, gin.H{
@@ -34,10 +34,6 @@ func LecturerRoutes(route *gin.Engine) {
 				"message": "register success",
 			})
 		})
-		authLecRoutesGroup := lecRoutesGroup.Group("/", middlewares.LecturerAuthenticate)
-		{
-			authLecRoutesGroup.GET("/")
-		}
 	}
 
 }
