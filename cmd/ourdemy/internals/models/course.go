@@ -155,6 +155,15 @@ func GetTop10NewestCourse() ([]Course, error) {
 	return res, err
 }
 
+func GetTop10MostWatchCourse() ([]Course, error) {
+	var res []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-watch_count").Limit(10).All(&res)
+	if res == nil {
+		res = []Course{}
+	}
+	return res, err
+}
+
 func GetTop4HighlightCourse() ([]SimpleCourse, error) {
 	var courses []Course
 	var res []SimpleCourse
@@ -225,6 +234,16 @@ func (c *Course) UpdateChapterCount(count int) error {
 	}, bson.M{
 		"$set": bson.M{
 			"chapter_count": count,
+		},
+	})
+}
+
+func (c *Course) UpdateWatchCount() error {
+	return db.Collection(c.collName()).UpdateOne(ctx, bson.M{
+		"_id": c.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"watch_count": c.WatchCount + 1,
 		},
 	})
 }

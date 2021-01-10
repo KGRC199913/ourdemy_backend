@@ -91,7 +91,13 @@ func CourseRoutes(route *gin.Engine) {
 				})
 				return
 			}
-
+			err = course.UpdateWatchCount()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
 			c.JSON(http.StatusOK, full)
 		})
 
