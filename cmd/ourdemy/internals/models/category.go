@@ -78,6 +78,25 @@ func GetAllCategory() (cats []Category, err error) {
 	return cats, nil
 }
 
+func GetAllMostRegisterCategory() (cats []Category, err error) {
+	var res []Category
+	var courses []Course
+	courses, err = GetTop10MostRegisterCourse()
+	if err == nil {
+		return []Category{}, err
+	}
+
+	var tempCat Category
+	for _, course := range courses {
+		err = db.Collection(Category{}.collName()).Find(ctx, bson.M{"_id": course.CatId}).One(&tempCat)
+		if err == nil {
+			return []Category{}, err
+		}
+		res = append(res, tempCat)
+	}
+	return res, err
+}
+
 // HOOKS
 func (cat *Category) BeforeInsert() error {
 	var dupCat Category

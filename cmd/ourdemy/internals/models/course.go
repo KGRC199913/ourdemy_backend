@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"sort"
 )
 
 type Course struct {
@@ -22,6 +23,7 @@ type Course struct {
 	ChapterCount       int                `json:"chapter_count" bson:"chapter_count"`
 	IsDone             bool               `json:"is_done" bson:"is_done"`
 	RegCount           int                `json:"reg_count" bson:"reg_count"`
+	WatchCount         int                `json:"watch_count" bson:"watch_count"`
 }
 
 type CourseChapter struct {
@@ -131,6 +133,56 @@ func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
 	var res []Course
 	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"lid": lid}).All(&res)
 	return res, err
+}
+
+func GetAllCourse() ([]Course, error) {
+	var res []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).All(&res)
+
+	if res == nil {
+		res = []Course{}
+	}
+	return res, err
+}
+
+func GetTop10NewestCourse() ([]Course, error) {
+	var res []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-createAt").Limit(10).All(&res)
+
+	if res == nil {
+		res = []Course{}
+	}
+	return res, err
+}
+
+func GetTop4HighlightCourse() ([]SimpleCourse, error) {
+	var courses []Course
+	var res []SimpleCourse
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).All(&courses)
+	for _, course := range courses {
+		simpleCourse, _ := course.ConvertToSimpleCourse()
+		res = append(res, *simpleCourse)
+	}
+
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].ReviewScore > res[j].ReviewScore
+	})
+
+	if res == nil {
+		res = []SimpleCourse{}
+	}
+
+	return res[0:4], err
+}
+
+func GetTop10MostRegisterCourse() ([]Course, error) {
+	var res []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-reg_count").Limit(10).All(&res)
+	if res == nil {
+		res = []Course{}
+	}
+	return res, err
+
 }
 
 func (c *Course) UpdateCourseDesc(short string, full string) error {
