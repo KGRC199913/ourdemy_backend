@@ -214,6 +214,37 @@ func CategoryRoutes(route *gin.Engine) {
 						"catName": subcatCreateInfo.ParentName,
 					})
 				})
+				subcatRoutesGroup.POST("/update", func(c *gin.Context) {
+					type updateSubcatInfo struct {
+						Name string             `json:"name" binding:"required"`
+						Id   primitive.ObjectID `json:"id" binding:"required"`
+					}
+
+					var info updateSubcatInfo
+					if err := c.ShouldBind(&info); err != nil {
+						c.JSON(http.StatusBadRequest, gin.H{
+							"error": err.Error(),
+						})
+						return
+					}
+
+					var cat models.SubCategory
+					if err := cat.FindSubCategoryById(info.Id); err != nil {
+						c.JSON(http.StatusNotFound, gin.H{
+							"error": "cat not found",
+						})
+
+						return
+					}
+
+					if err := cat.UpdateName(info.Name); err != nil {
+						c.JSON(http.StatusInternalServerError, err)
+						fmt.Println(err)
+						return
+					}
+
+					c.JSON(http.StatusOK, cat)
+				})
 				subcatRoutesGroup.DELETE("/delete/:scid", middlewares.AdminAuthenticate, func(c *gin.Context) {
 					scid, err := primitive.ObjectIDFromHex(c.Param("scid"))
 					if err != nil {

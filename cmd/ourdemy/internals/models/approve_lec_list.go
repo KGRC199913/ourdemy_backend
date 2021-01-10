@@ -28,6 +28,11 @@ func GetAllApprovingLecturers() ([]Approve, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if apprs == nil {
+		apprs = []Approve{}
+	}
+
 	return apprs, nil
 }
 

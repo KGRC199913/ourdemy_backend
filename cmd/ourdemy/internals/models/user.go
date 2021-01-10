@@ -14,7 +14,7 @@ import (
 )
 
 type User struct {
-	field.DefaultField     `json:"-" bson:",inline"`
+	field.DefaultField     `json:",inline" bson:",inline"`
 	Fullname               string    `json:"fullname" bson:"fullname" binding:"required"`
 	Username               string    `json:"username" bson:"username" binding:"required"`
 	Email                  string    `json:"email" bson:"email" binding:"required"`
@@ -26,6 +26,7 @@ type User struct {
 	RecoverCodeExpiredTime time.Time `json:"-" bson:"rec_exp"`
 	RefreshToken           string    `json:"-" bson:"rf"`
 	IsLec                  bool      `json:"isLec" bson:"is_lec"`
+	IsBanned               bool      `json:"is_banned" bson:"is_banned"`
 }
 
 func (User) collName() string {
@@ -46,6 +47,37 @@ func NewUser(fullname string, email string, password string) *User {
 func (u *User) Save() error {
 	_, err := db.Collection(u.collName()).InsertOne(ctx, u)
 	return err
+}
+
+func AllUser() ([]User, error) {
+	var res []User
+	err := db.Collection(User{}.collName()).Find(ctx, bson.M{}).All(&res)
+	if res == nil {
+		res = []User{}
+	}
+	return res, err
+}
+
+func (u *User) Ban() error {
+	u.IsBanned = true
+	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
+		"_id": u.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"is_banned": true,
+		},
+	})
+}
+
+func (u *User) Unban() error {
+	u.IsBanned = false
+	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
+		"_id": u.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"is_banned": false,
+		},
+	})
 }
 
 func (u *User) FindById(oid primitive.ObjectID) error {
@@ -173,6 +205,7 @@ func (u *User) UpdatePassword(newPassword string) error {
 }
 
 func (u *User) UpdateLecturerStatus(isLec bool) error {
+	u.IsLec = isLec
 	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
 		"_id": u.Id,
 	}, bson.M{
