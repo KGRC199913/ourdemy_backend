@@ -57,6 +57,7 @@ func routing(r *gin.Engine) {
 	route.ReviewRoutes(r)
 	route.VideoRoutes(r)
 	route.TimeMark(r)
+	route.HomeRoutes(r)
 }
 
 func Run(config *ultis.Config) error {
