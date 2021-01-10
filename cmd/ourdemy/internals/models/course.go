@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"os"
 	"sort"
 )
 
@@ -123,7 +124,7 @@ func (vm *VideoMetadata) FindById(vmid primitive.ObjectID) error {
 	return db.Collection(vm.collName()).Find(ctx, bson.M{"_id": vmid}).One(vm)
 }
 
-func FindAllChapterByCatId(cid primitive.ObjectID) ([]CourseChapter, error) {
+func FindAllChapterByCourseId(cid primitive.ObjectID) ([]CourseChapter, error) {
 	var ccs []CourseChapter
 	err := db.Collection(CourseChapter{}.collName()).Find(ctx, bson.M{"cid": cid}).All(&ccs)
 	return ccs, err
@@ -142,6 +143,30 @@ func GetAllCourse() ([]Course, error) {
 	if res == nil {
 		res = []Course{}
 	}
+	return res, err
+}
+
+func GetAllCourseAsFull() ([]FullCourse, error) {
+	c, err := GetAllCourse()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if c == nil {
+		c = []Course{}
+	}
+
+	var res []FullCourse
+	for _, item := range c {
+		f, err := item.ConvertToFullCourse()
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, *f)
+	}
+
 	return res, err
 }
 
@@ -396,6 +421,44 @@ func getAllChapterByCourseId(cid primitive.ObjectID) (cc []CourseChapter, err er
 		return nil, err
 	}
 	return cc, nil
+}
+
+func (c *Course) ForceRemove() error {
+	chaps, err := FindAllChapterByCourseId(c.Id)
+	if err != nil {
+		return err
+	}
+
+	if chaps == nil {
+		chaps = []CourseChapter{}
+	}
+
+	for _, chap := range chaps {
+		vids, err := FindAllVideoMetadataByChapterId(chap.Id)
+		if err != nil {
+			return err
+		}
+
+		if vids == nil {
+			vids = []VideoMetadata{}
+		}
+
+		for _, vid := range vids {
+			if err := os.Remove("vid/" + vid.Id.Hex()); err != nil {
+				return err
+			}
+
+			if err := vid.Remove(); err != nil {
+				return err
+			}
+		}
+
+		if err = chap.Remove(); err != nil {
+			return err
+		}
+	}
+
+	return c.Remove()
 }
 
 func (c *Course) Remove() error {
