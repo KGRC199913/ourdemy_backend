@@ -167,6 +167,10 @@ func GetAllCourseAsFull() ([]FullCourse, error) {
 		res = append(res, *f)
 	}
 
+	if res == nil {
+		res = []FullCourse{}
+	}
+
 	return res, err
 }
 

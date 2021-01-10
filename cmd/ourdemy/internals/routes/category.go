@@ -66,6 +66,10 @@ func CategoryRoutes(route *gin.Engine) {
 				res = append(res, catItem)
 			}
 
+			if res == nil {
+				res = []catItem{}
+			}
+
 			c.JSON(http.StatusOK, res)
 		})
 

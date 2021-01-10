@@ -361,6 +361,10 @@ func CourseRoutes(route *gin.Engine) {
 						full = append(full, *fullCourse)
 					}
 
+					if full == nil {
+						full = []models.FullCourse{}
+					}
+
 					c.JSON(http.StatusOK, full)
 				})
 				lecturerCourseRoutesGroup.POST("/create", func(c *gin.Context) {
