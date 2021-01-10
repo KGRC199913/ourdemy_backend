@@ -88,6 +88,15 @@ func (u *User) FindByUsername(username string) error {
 	return db.Collection(u.collName()).Find(ctx, bson.M{"username": username}).One(u)
 }
 
+func IsBanned(uid primitive.ObjectID) bool {
+	var u User
+	if err := u.FindById(uid); err != nil {
+		return true
+	}
+
+	return u.IsBanned
+}
+
 func (u *User) FindByEmail(email string) error {
 	return db.Collection(u.collName()).Find(ctx, bson.M{"email": email}).One(u)
 }

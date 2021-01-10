@@ -46,6 +46,15 @@ func Authenticate(c *gin.Context) {
 				return
 			}
 
+			if rfUser.IsBanned {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error": "banned",
+				})
+
+				c.Abort()
+				return
+			}
+
 			newAccessToken, newRfToken, err := rfUser.UpdateTokens()
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{
@@ -80,6 +89,15 @@ func Authenticate(c *gin.Context) {
 			c.Abort()
 			return
 		}
+	}
+
+	if models.IsBanned(userClaims.Id) {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "banned",
+		})
+
+		c.Abort()
+		return
 	}
 
 	c.Set("id", userClaims.Id)
@@ -133,6 +151,15 @@ func UrlAuthenticate(c *gin.Context) {
 			c.Abort()
 			return
 		}
+	}
+
+	if models.IsBanned(userClaims.Id) {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "banned",
+		})
+
+		c.Abort()
+		return
 	}
 
 	c.Set("id", userClaims.Id)
