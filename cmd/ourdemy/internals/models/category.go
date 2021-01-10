@@ -51,6 +51,17 @@ func (cat *Category) UpdateName(name string) error {
 	})
 }
 
+func (subcat *SubCategory) UpdateName(name string) error {
+	subcat.Name = name
+	return db.Collection(subcat.collName()).UpdateOne(ctx, bson.M{
+		"_id": subcat.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"name": subcat.Name,
+		},
+	})
+}
+
 func (cat *Category) Remove() error {
 	return db.Collection(cat.collName()).RemoveId(ctx, cat.Id)
 }
