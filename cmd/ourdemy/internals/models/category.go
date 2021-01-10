@@ -70,11 +70,18 @@ func (subcat *SubCategory) Remove() error {
 	return db.Collection(subcat.collName()).RemoveId(ctx, subcat.Id)
 }
 
-func GetAllCategory() (cats []Category, err error) {
-	err = db.Collection(Category{}.collName()).Find(ctx, bson.M{}).All(&cats)
+func GetAllCategory() ([]Category, error) {
+	var cats []Category
+
+	err := db.Collection(Category{}.collName()).Find(ctx, bson.M{}).All(&cats)
 	if err != nil {
 		return nil, err
 	}
+
+	if cats == nil {
+		cats = []Category{}
+	}
+
 	return cats, nil
 }
 
