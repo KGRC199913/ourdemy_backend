@@ -88,7 +88,6 @@ func AdminRoutes(route *gin.Engine) {
 		})
 		adminroutesGroup.POST("/users/ban/:uid", func(c *gin.Context) {
 			uid, err := primitive.ObjectIDFromHex(c.Param("uid"))
-
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": "uid invalid",
@@ -146,7 +145,44 @@ func AdminRoutes(route *gin.Engine) {
 		})
 
 		adminroutesGroup.GET("/courses", func(c *gin.Context) {
+			res, err := models.GetAllCourseAsFull()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
 
+				return
+			}
+
+			c.JSON(http.StatusOK, res)
+		})
+		adminroutesGroup.DELETE("/courses/:cid", func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "cid invalid",
+				})
+				return
+			}
+
+			var course models.Course
+			if err := course.FindById(cid); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "course not found",
+				})
+
+				return
+			}
+
+			if err := course.ForceRemove(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+
+				return
+			}
+
+			c.JSON(http.StatusOK, course)
 		})
 	}
 }
