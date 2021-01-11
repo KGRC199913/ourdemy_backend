@@ -329,6 +329,25 @@ func CourseRoutes(route *gin.Engine) {
 					"message": "successfully registered",
 				})
 			})
+			authCourseRoutesGroup.GET("/checkJoined/:cid", func(c *gin.Context) {
+				cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": errors.New("course id invalid"),
+					})
+					return
+				}
+
+				uid, ok := c.Get("id")
+				if !ok {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "id missing? wtf",
+					})
+					return
+				}
+
+				c.JSON(http.StatusOK, models.IsUserJoined(cid, uid.(primitive.ObjectID)))
+			})
 			lecturerCourseRoutesGroup := authCourseRoutesGroup.Group("/", middlewares.LecturerAuthenticate)
 			{
 				lecturerCourseRoutesGroup.GET("/allByMe", func(c *gin.Context) {
@@ -485,7 +504,7 @@ func CourseRoutes(route *gin.Engine) {
 					type updateCourseDescData struct {
 						Short    string  `json:"short_desc" form:"short_desc" binding:"required"`
 						Full     string  `json:"full_desc" form:"full_desc" binding:"required"`
-						Discount float64 `json:"discount" form:"discount" binding:"required"`
+						Discount float64 `json:"discount" form:"discount"`
 					}
 
 					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))

@@ -22,7 +22,6 @@ func ReviewRoutes(route *gin.Engine) {
 			}
 
 			revs, err := models.FindByCourseId(cid)
-
 			if err != nil {
 				c.JSON(http.StatusNotFound, gin.H{
 					"error": err.Error(),
@@ -30,7 +29,25 @@ func ReviewRoutes(route *gin.Engine) {
 				return
 			}
 
-			c.JSON(http.StatusOK, revs)
+			var dpRvs []models.DisplayableReview
+			for _, rev := range revs {
+				dpRv, err := rev.ConvertToDisplayableReview()
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "something went wrong",
+					})
+
+					return
+				}
+
+				dpRvs = append(dpRvs, *dpRv)
+			}
+
+			if dpRvs == nil {
+				dpRvs = []models.DisplayableReview{}
+			}
+
+			c.JSON(http.StatusOK, dpRvs)
 		})
 
 		reviewRoutesGroup.POST("/create", middlewares.Authenticate, func(c *gin.Context) {

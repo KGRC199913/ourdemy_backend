@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math"
+	"time"
 )
 
 type Review struct {
@@ -13,6 +14,14 @@ type Review struct {
 	CourseId           primitive.ObjectID `json:"cid" bson:"cid"`
 	Content            string             `json:"content" bson:"content"`
 	Score              float32            `json:"score" bson:"score"`
+}
+
+type DisplayableReview struct {
+	Id       primitive.ObjectID `json:"id"`
+	Content  string             `json:"content"`
+	Score    float32            `json:"score"`
+	Username string             `json:"username"`
+	Time     time.Time          `json:"time"`
 }
 
 func (Review) collName() string {
@@ -34,7 +43,27 @@ func FindByCourseId(cid primitive.ObjectID) ([]Review, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if revs == nil {
+		revs = []Review{}
+	}
+
 	return revs, nil
+}
+
+func (rv *Review) ConvertToDisplayableReview() (*DisplayableReview, error) {
+	var u User
+	if err := u.FindById(rv.UserId); err != nil {
+		return nil, err
+	}
+
+	return &DisplayableReview{
+		Id:       rv.Id,
+		Content:  rv.Content,
+		Score:    rv.Score,
+		Username: u.Username,
+		Time:     rv.CreateAt,
+	}, nil
 }
 
 func CalcAvgScore(cid primitive.ObjectID) (float32, error) {

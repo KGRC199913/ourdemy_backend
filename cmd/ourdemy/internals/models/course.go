@@ -55,20 +55,21 @@ type SimpleCourse struct {
 }
 
 type FullCourse struct {
-	Id          string          `json:"id"`
-	Title       string          `json:"title"`
-	CategoryId  string          `json:"cid"`
-	Category    string          `json:"category"`
-	LecturerId  string          `json:"lid"`
-	Lecturer    string          `json:"lecturer"`
-	ReviewScore float32         `json:"review_score"`
-	Ava         string          `json:"ava"`
-	Fee         float64         `json:"fee" bson:"fee"`
-	Discount    float64         `json:"discount" bson:"discount"`
-	ShortDesc   string          `json:"short_desc" bson:"short_desc"`
-	FullDesc    string          `json:"full_desc" bson:"full_desc"`
-	IsDone      bool            `json:"is_done"`
-	Chapters    []CourseChapter `json:"chapters"`
+	Id            string          `json:"id"`
+	Title         string          `json:"title"`
+	CategoryId    string          `json:"cid"`
+	Category      string          `json:"category"`
+	LecturerId    string          `json:"lid"`
+	Lecturer      string          `json:"lecturer"`
+	LecturerEmail string          `json:"lecturer_email"`
+	ReviewScore   float32         `json:"review_score"`
+	Ava           string          `json:"ava"`
+	Fee           float64         `json:"fee" bson:"fee"`
+	Discount      float64         `json:"discount" bson:"discount"`
+	ShortDesc     string          `json:"short_desc" bson:"short_desc"`
+	FullDesc      string          `json:"full_desc" bson:"full_desc"`
+	IsDone        bool            `json:"is_done"`
+	Chapters      []CourseChapter `json:"chapters"`
 }
 
 func (Course) collName() string {
@@ -401,20 +402,21 @@ func (c *Course) ConvertToFullCourse() (*FullCourse, error) {
 	}
 
 	return &FullCourse{
-		Id:          c.Id.String(),
-		Title:       c.Name,
-		CategoryId:  c.CatId.String(),
-		Category:    category.Name,
-		LecturerId:  c.LecId.String(),
-		Lecturer:    lecturer.Fullname,
-		ReviewScore: reviewScore,
-		Ava:         c.Ava,
-		Fee:         c.Fee,
-		Discount:    c.Discount,
-		ShortDesc:   c.ShortDesc,
-		FullDesc:    c.FullDesc,
-		IsDone:      c.IsDone,
-		Chapters:    chapters,
+		Id:            c.Id.String(),
+		Title:         c.Name,
+		CategoryId:    c.CatId.String(),
+		Category:      category.Name,
+		LecturerId:    c.LecId.String(),
+		Lecturer:      lecturer.Fullname,
+		LecturerEmail: lecturer.Email,
+		ReviewScore:   reviewScore,
+		Ava:           c.Ava,
+		Fee:           c.Fee,
+		Discount:      c.Discount,
+		ShortDesc:     c.ShortDesc,
+		FullDesc:      c.FullDesc,
+		IsDone:        c.IsDone,
+		Chapters:      chapters,
 	}, nil
 }
 
