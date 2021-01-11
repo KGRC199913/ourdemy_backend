@@ -30,7 +30,7 @@ func CourseRoutes(route *gin.Engine) {
 				return
 			}
 
-			chapters, err := models.FindAllChapterByCatId(cid)
+			chapters, err := models.FindAllChapterByCourseId(cid)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": err.Error(),
@@ -365,6 +365,10 @@ func CourseRoutes(route *gin.Engine) {
 							return
 						}
 						full = append(full, *fullCourse)
+					}
+
+					if full == nil {
+						full = []models.FullCourse{}
 					}
 
 					c.JSON(http.StatusOK, full)
