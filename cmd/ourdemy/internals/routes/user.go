@@ -241,6 +241,92 @@ func UserRoutes(route *gin.Engine) {
 			})
 		})
 
+		userRoutesGroup.POST("/resetPassword", func(c *gin.Context) {
+			type userReset struct {
+				Email string `json:"email" binding:"required"`
+			}
+			var curResetUser userReset
+			if err := c.ShouldBind(&curResetUser); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			curUser := models.User{}
+
+			if err := curUser.FindByEmail(curResetUser.Email); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "email not exist",
+				})
+				return
+			}
+
+			if err := curUser.GenerateRecoverCode(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			auth := LoginAuth(viper.GetString("USERNAME"), viper.GetString("PASSWORD"))
+			to := []string{curUser.Email}
+			msg := []byte("To: " + curUser.Email + "\r\n" +
+				"Subject: Ourdemy Announcement\r\n" +
+				"\r\n" + "RECOVER CODE: " +
+				curUser.RecoverCode + "\nExpired Time: " + curUser.RecoverCodeExpiredTime.Format("2006-01-02 15:04:05") + "\r\n")
+			err := smtp.SendMail("smtp.gmail.com:587", auth, viper.GetString("USERNAME"), to, msg)
+			if err != nil {
+				panic(err.Error())
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "send recover code to email successful.",
+			})
+		})
+
+		userRoutesGroup.POST("/confirmResetPassword", func(c *gin.Context) {
+			type userConfirm struct {
+				Email             string `json:"email" binding:"required"`
+				NewPassword       string `json:"new_password" binding:"required"`
+				ReConfirmPassword string `json:"re_confirm_password" binding:"required"`
+				RecoverCode       string `json:"recover_code" binding:"required"`
+			}
+			var curConfirmUser userConfirm
+			if err := c.ShouldBind(&curConfirmUser); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+			curUser := models.User{}
+
+			if err := curUser.FindByEmail(curConfirmUser.Email); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			if curConfirmUser.NewPassword != curConfirmUser.ReConfirmPassword {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "password not match",
+				})
+				return
+			}
+
+			if err := curUser.ConfirmResetPassword(curConfirmUser.RecoverCode, curConfirmUser.NewPassword); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "reset password successful",
+			})
+		})
+
 		userRoutesGroup.POST("/update", middlewares.Authenticate, func(c *gin.Context) {
 			type userUpdate struct {
 				Fullname string `json:"fullname" binding:"required"`
