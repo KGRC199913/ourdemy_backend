@@ -214,11 +214,17 @@ func (u *User) ConfirmResetPassword(recoverCode string, newPassword string) erro
 		return errors.New("recover code expired")
 	}
 
+	hashed, err := scrypt.GenerateFromPassword([]byte(newPassword), scrypt.DefaultParams)
+	if err != nil {
+		return err
+	}
+	u.HPassword = string(hashed)
+
 	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
 		"_id": u.Id,
 	}, bson.M{
 		"$set": bson.M{
-			"hpass":   newPassword,
+			"hpass":   u.HPassword,
 			"recover": "",
 			"rec_exp": time.Now(),
 		},
@@ -237,6 +243,7 @@ func (u *User) UpdateProfile(newFullname string, newEmail string) error {
 }
 
 func (u *User) UpdatePassword(newPassword string) error {
+
 	return db.Collection(u.collName()).UpdateOne(ctx, bson.M{
 		"_id": u.Id,
 	}, bson.M{
@@ -269,15 +276,6 @@ func (u *User) BeforeInsert() error {
 		return errors.New("user's email is already existed")
 	}
 
-	hashed, err := scrypt.GenerateFromPassword([]byte(u.HPassword), scrypt.DefaultParams)
-	if err != nil {
-		return err
-	}
-	u.HPassword = string(hashed)
-	return nil
-}
-
-func (u *User) BeforeUpdate() error {
 	hashed, err := scrypt.GenerateFromPassword([]byte(u.HPassword), scrypt.DefaultParams)
 	if err != nil {
 		return err
