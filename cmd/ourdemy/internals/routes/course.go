@@ -305,6 +305,52 @@ func CourseRoutes(route *gin.Engine) {
 			c.JSON(http.StatusOK, res)
 		})
 
+		courseRoutesGroup.GET("/relevance/:cid", func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "course id invalid",
+				})
+				return
+			}
+
+			var course models.Course
+			if err := course.FindById(cid); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			res, err := models.Get5RandomCourseBySubcat(course.CatId)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "something wrong",
+				})
+
+				return
+			}
+
+			var scRes []models.SimpleCourse
+			for _, course := range res {
+				sc, err := course.ConvertToSimpleCourse()
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "something went wrong",
+					})
+
+					return
+				}
+				scRes = append(scRes, *sc)
+			}
+
+			if scRes == nil {
+				scRes = []models.SimpleCourse{}
+			}
+
+			c.JSON(http.StatusOK, scRes)
+		})
+
 		authCourseRoutesGroup := courseRoutesGroup.Group("/", middlewares.Authenticate)
 		{
 			authCourseRoutesGroup.POST("/buy/:cid", func(c *gin.Context) {

@@ -50,11 +50,47 @@ func ReviewRoutes(route *gin.Engine) {
 			c.JSON(http.StatusOK, dpRvs)
 		})
 
+		reviewRoutesGroup.GET("/:cid/my", middlewares.Authenticate, func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": errors.New("course id invalid"),
+				})
+				return
+			}
+
+			uid, ok := c.Get("id")
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "id missing? wtf",
+				})
+				return
+			}
+
+			var r models.Review
+			if err := r.FindByUidAndCid(uid.(primitive.ObjectID), cid); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "not found",
+				})
+				return
+			}
+
+			dr, err := r.ConvertToDisplayableReview()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "something went wrong",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, dr)
+		})
+
 		reviewRoutesGroup.POST("/create", middlewares.Authenticate, func(c *gin.Context) {
 			type createReview struct {
 				CourseId string  `json:"cid" binding:"required"`
 				Content  string  `json:"content" binding:"required"`
-				Score    float32 `json:"score" binding:"required"`
+				Score    float32 `json:"score"`
 			}
 
 			var newReview createReview
@@ -97,7 +133,15 @@ func ReviewRoutes(route *gin.Engine) {
 				return
 			}
 
-			c.JSON(http.StatusOK, curReview)
+			dp, err := curReview.ConvertToDisplayableReview()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, dp)
 		})
 
 		reviewRoutesGroup.POST("/update/:rid", middlewares.Authenticate, func(c *gin.Context) {

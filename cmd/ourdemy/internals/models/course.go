@@ -224,6 +224,20 @@ func GetTop10MostRegisterCourse() ([]Course, error) {
 
 }
 
+func Get5RandomCourseBySubcat(cid primitive.ObjectID) ([]Course, error) {
+	var res []Course
+	err := db.Collection(Course{}.collName()).Aggregate(ctx, mongo.Pipeline{
+		{{"$match", bson.D{{"cat_id", cid}}}},
+		{{"$sample", bson.D{{"size", 5}}}},
+	}).All(&res)
+
+	if res == nil {
+		res = []Course{}
+	}
+
+	return res, err
+}
+
 func (c *Course) UpdateCourseDesc(short string, full string) error {
 	c.ShortDesc = short
 	c.FullDesc = full

@@ -37,6 +37,14 @@ func (r *Review) FindById(oid primitive.ObjectID) error {
 	return db.Collection(r.collName()).Find(ctx, bson.M{"_id": oid}).One(r)
 }
 
+func (r *Review) FindByUid(uid primitive.ObjectID) error {
+	return db.Collection(r.collName()).Find(ctx, bson.M{"uid": uid}).One(r)
+}
+
+func (r *Review) FindByUidAndCid(uid primitive.ObjectID, cid primitive.ObjectID) error {
+	return db.Collection(r.collName()).Find(ctx, bson.M{"uid": uid, "cid": cid}).One(r)
+}
+
 func FindByCourseId(cid primitive.ObjectID) ([]Review, error) {
 	var revs []Review
 	err := db.Collection(Review{}.collName()).Find(ctx, bson.M{"cid": cid}).All(&revs)

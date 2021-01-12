@@ -16,12 +16,12 @@ var db *qmgo.Database
 var ctx context.Context
 
 func InitDb(config *ultis.Config) error {
-	uri := fmt.Sprintf("mongodb://%s:%s@%s/%s?authSource=admin", config.DbUsername, config.DbPassword, config.DbUrl, config.DbName)
-	//uri := fmt.Sprintf("mongodb+srv://%s:%s@%s/%s?retryWrites=true&w=majority&authSource=admin", config.DbUsername, config.DbPassword, config.DbUrl, config.DbName)
+	//uri := fmt.Sprintf("mongodb://%s:%s@%s/%s?authSource=admin", config.DbUsername, config.DbPassword, config.DbUrl, config.DbName)
+	uri := fmt.Sprintf("mongodb+srv://%s:%s@%s/%s?retryWrites=true&w=majority&authSource=admin", config.DbUsername, config.DbPassword, config.DbUrl, config.DbName)
 	fmt.Println("connecting to db")
 	fmt.Printf("uri: %s\n", uri)
 	var cancel context.CancelFunc
-	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	// Set client options
 	clientOptions := options.Client().ApplyURI(uri)
