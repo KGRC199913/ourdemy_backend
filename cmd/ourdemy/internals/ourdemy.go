@@ -48,7 +48,8 @@ func serverInit(config *ultis.Config) (*gin.Engine, error) {
 }
 
 func routing(r *gin.Engine) {
-	route.TestRoutes(r)
+	//route.TestRoutes(r)
+	route.BasicRoutes(r)
 	route.CategoryRoutes(r)
 	route.CourseRoutes(r)
 	route.LecturerRoutes(r)

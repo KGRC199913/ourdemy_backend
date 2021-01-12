@@ -21,7 +21,7 @@ func InitDb(config *ultis.Config) error {
 	fmt.Println("connecting to db")
 	fmt.Printf("uri: %s\n", uri)
 	var cancel context.CancelFunc
-	ctx, cancel = context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	// Set client options
 	clientOptions := options.Client().ApplyURI(uri)
