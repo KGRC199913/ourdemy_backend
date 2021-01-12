@@ -31,8 +31,14 @@ func (rgC *regCourse) Save() error {
 func AddUserToCourseInfo(uid primitive.ObjectID, cid primitive.ObjectID) error {
 	var rgC regCourse
 	if err := rgC.FindByCourseId(cid); err != nil {
-		return errors.New("user already registered")
+		return errors.New("reg course info not found")
 	}
+
+	index := rgcIndexOfUid(uid, rgC.JoinInfo)
+	if index != -1 {
+		return errors.New("already joined")
+	}
+
 	rgC.JoinInfo = append(rgC.JoinInfo, courseJoinInfo{
 		JoinDate: time.Now(),
 		UserId:   uid,

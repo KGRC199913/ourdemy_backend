@@ -305,6 +305,52 @@ func CourseRoutes(route *gin.Engine) {
 			c.JSON(http.StatusOK, res)
 		})
 
+		courseRoutesGroup.GET("/relevance/:cid", func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "course id invalid",
+				})
+				return
+			}
+
+			var course models.Course
+			if err := course.FindById(cid); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+
+			res, err := models.Get5RandomCourseBySubcat(course.CatId)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "something wrong",
+				})
+
+				return
+			}
+
+			var scRes []models.SimpleCourse
+			for _, course := range res {
+				sc, err := course.ConvertToSimpleCourse()
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "something went wrong",
+					})
+
+					return
+				}
+				scRes = append(scRes, *sc)
+			}
+
+			if scRes == nil {
+				scRes = []models.SimpleCourse{}
+			}
+
+			c.JSON(http.StatusOK, scRes)
+		})
+
 		authCourseRoutesGroup := courseRoutesGroup.Group("/", middlewares.Authenticate)
 		{
 			authCourseRoutesGroup.POST("/buy/:cid", func(c *gin.Context) {
@@ -334,6 +380,25 @@ func CourseRoutes(route *gin.Engine) {
 				c.JSON(http.StatusOK, gin.H{
 					"message": "successfully registered",
 				})
+			})
+			authCourseRoutesGroup.GET("/checkJoined/:cid", func(c *gin.Context) {
+				cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": errors.New("course id invalid"),
+					})
+					return
+				}
+
+				uid, ok := c.Get("id")
+				if !ok {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "id missing? wtf",
+					})
+					return
+				}
+
+				c.JSON(http.StatusOK, models.IsUserJoined(cid, uid.(primitive.ObjectID)))
 			})
 			lecturerCourseRoutesGroup := authCourseRoutesGroup.Group("/", middlewares.LecturerAuthenticate)
 			{
@@ -491,7 +556,7 @@ func CourseRoutes(route *gin.Engine) {
 					type updateCourseDescData struct {
 						Short    string  `json:"short_desc" form:"short_desc" binding:"required"`
 						Full     string  `json:"full_desc" form:"full_desc" binding:"required"`
-						Discount float64 `json:"discount" form:"discount" binding:"required"`
+						Discount float64 `json:"discount" form:"discount"`
 					}
 
 					cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
