@@ -3,6 +3,7 @@ package main
 import (
 	app "github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
+	"log"
 )
 
 func main() {
@@ -15,5 +16,5 @@ func main() {
 	//}
 
 	config, _ := ultis.LoadConfigFile()
-	_ = app.Run(config)
+	log.Fatal(app.Run(config))
 }
