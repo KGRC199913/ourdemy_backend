@@ -6,6 +6,7 @@ import (
 	route "github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/routes"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"time"
 )
@@ -70,9 +71,5 @@ func Run(config *ultis.Config) error {
 	routing(r)
 
 	fmt.Printf("App started, listentning on port %s\n", config.Port)
-	err = r.Run(fmt.Sprintf(":%d", config.Port))
-	if err != nil {
-		return err
-	}
-	return nil
+	return autotls.Run(r, "ourdemy.xyz")
 }
