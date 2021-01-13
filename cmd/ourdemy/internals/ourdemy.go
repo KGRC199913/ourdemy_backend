@@ -30,6 +30,7 @@ func serverInit(config *ultis.Config) (*gin.Engine, error) {
 	}
 	//end DB init
 
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	//cors
 	r.Use(cors.New(cors.Config{
