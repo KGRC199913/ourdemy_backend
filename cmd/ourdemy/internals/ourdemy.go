@@ -1,13 +1,13 @@
 package internals
 
 import (
-	"fmt"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	route "github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/routes"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/ultis"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/acme/autocert"
 	"time"
 )
 
@@ -70,6 +70,11 @@ func Run(config *ultis.Config) error {
 
 	routing(r)
 
-	fmt.Printf("App started, listentning on port %s\n", config.Port)
-	return autotls.Run(r, "ourdemy.xyz")
+	m := autocert.Manager{
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist("ourdemy.xyz"),
+		Cache:      autocert.DirCache("/certCache"),
+	}
+
+	return autotls.RunWithManager(r, &m)
 }
