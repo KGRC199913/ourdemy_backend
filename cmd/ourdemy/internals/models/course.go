@@ -52,6 +52,7 @@ type SimpleCourse struct {
 	ReviewScore  float32 `json:"review_score"`
 	Ava          string  `json:"ava"`
 	CurrentPrice float64 `json:"current_price"`
+	IsDone       bool    `json:"is_done"`
 }
 
 type FullCourse struct {
@@ -147,6 +148,96 @@ func GetAllCourse() ([]Course, error) {
 	return res, err
 }
 
+func GetAllCourseAsSimple() ([]SimpleCourse, error) {
+	c, err := GetAllCourse()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if c == nil {
+		c = []Course{}
+	}
+
+	var res []SimpleCourse
+	for _, item := range c {
+		f, err := item.ConvertToSimpleCourse()
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, *f)
+	}
+
+	if res == nil {
+		res = []SimpleCourse{}
+	}
+
+	return res, err
+}
+
+func GetAllCourseBySubcatIdAsSimple(subcatId primitive.ObjectID) ([]SimpleCourse, error) {
+	var res []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subcatId}).All(&res)
+
+	if res == nil {
+		res = []Course{}
+	}
+
+	var returnRes []SimpleCourse
+	for _, course := range res {
+		f, err := course.ConvertToSimpleCourse()
+		if err != nil {
+			return nil, err
+		}
+
+		returnRes = append(returnRes, *f)
+	}
+
+	if returnRes == nil {
+		returnRes = []SimpleCourse{}
+	}
+
+	return returnRes, err
+}
+
+func GetAllCourseByCatIdAsSimple(catId primitive.ObjectID) ([]SimpleCourse, error) {
+	var res []Course
+	subCats, err := FindByParentCategoryId(catId)
+	if err != nil {
+		return nil, err
+	}
+
+	var courses []Course
+	for _, subCat := range subCats {
+		err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subCat.Id}).All(&courses)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, courses...)
+	}
+
+	if res == nil {
+		res = []Course{}
+	}
+
+	var returnRes []SimpleCourse
+	for _, course := range res {
+		f, err := course.ConvertToSimpleCourse()
+		if err != nil {
+			return nil, err
+		}
+
+		returnRes = append(returnRes, *f)
+	}
+
+	if returnRes == nil {
+		returnRes = []SimpleCourse{}
+	}
+
+	return returnRes, err
+}
+
 func GetAllCourseAsFull() ([]FullCourse, error) {
 	c, err := GetAllCourse()
 
@@ -175,29 +266,51 @@ func GetAllCourseAsFull() ([]FullCourse, error) {
 	return res, err
 }
 
-func GetTop10NewestCourse() ([]Course, error) {
-	var res []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-createAt").Limit(10).All(&res)
+func GetTop10NewestCourse() ([]SimpleCourse, error) {
+	var courses []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-createAt").Limit(10).All(&courses)
+
+	if courses == nil {
+		courses = []Course{}
+	}
+
+	var res []SimpleCourse
+	for _, course := range courses {
+		simpleCourse, _ := course.ConvertToSimpleCourse()
+		res = append(res, *simpleCourse)
+	}
 
 	if res == nil {
-		res = []Course{}
+		res = []SimpleCourse{}
 	}
+
 	return res, err
 }
 
-func GetTop10MostWatchCourse() ([]Course, error) {
-	var res []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-watch_count").Limit(10).All(&res)
-	if res == nil {
-		res = []Course{}
+func GetTop10MostWatchCourse() ([]SimpleCourse, error) {
+	var courses []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-watch_count").Limit(10).All(&courses)
+	if courses == nil {
+		courses = []Course{}
 	}
+	var res []SimpleCourse
+	for _, course := range courses {
+		simpleCourse, _ := course.ConvertToSimpleCourse()
+		res = append(res, *simpleCourse)
+	}
+
+	if res == nil {
+		res = []SimpleCourse{}
+	}
+
 	return res, err
 }
 
 func GetTop4HighlightCourse() ([]SimpleCourse, error) {
 	var courses []Course
-	var res []SimpleCourse
 	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).All(&courses)
+
+	var res []SimpleCourse
 	for _, course := range courses {
 		simpleCourse, _ := course.ConvertToSimpleCourse()
 		res = append(res, *simpleCourse)
@@ -215,27 +328,27 @@ func GetTop4HighlightCourse() ([]SimpleCourse, error) {
 }
 
 func GetTop10MostRegisterCourse() ([]Course, error) {
-	var res []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-reg_count").Limit(10).All(&res)
-	if res == nil {
-		res = []Course{}
+	var courses []Course
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-reg_count").Limit(10).All(&courses)
+	if courses == nil {
+		courses = []Course{}
 	}
-	return res, err
 
+	return courses, err
 }
 
 func Get5RandomCourseBySubcat(cid primitive.ObjectID) ([]Course, error) {
-	var res []Course
+	var courses []Course
 	err := db.Collection(Course{}.collName()).Aggregate(ctx, mongo.Pipeline{
 		{{"$match", bson.D{{"cat_id", cid}}}},
 		{{"$sample", bson.D{{"size", 5}}}},
-	}).All(&res)
+	}).All(&courses)
 
-	if res == nil {
-		res = []Course{}
+	if courses == nil {
+		courses = []Course{}
 	}
 
-	return res, err
+	return courses, err
 }
 
 func (c *Course) UpdateCourseDesc(short string, full string) error {
@@ -395,6 +508,7 @@ func (c *Course) ConvertToSimpleCourse() (*SimpleCourse, error) {
 		ReviewScore:  reviewScore,
 		Ava:          c.Ava,
 		CurrentPrice: c.Fee * c.Discount,
+		IsDone:       c.IsDone,
 	}, nil
 }
 

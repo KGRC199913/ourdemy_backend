@@ -50,6 +50,7 @@ func HomeRoutes(route *gin.Engine) {
 				})
 				return
 			}
+
 			c.JSON(http.StatusOK, courses)
 		})
 	}
