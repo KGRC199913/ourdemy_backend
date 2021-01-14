@@ -184,5 +184,61 @@ func AdminRoutes(route *gin.Engine) {
 
 			c.JSON(http.StatusOK, course)
 		})
+		adminroutesGroup.POST("/course/disable/:cid", func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "cid invalid",
+				})
+				return
+			}
+
+			var course models.Course
+			if err := course.FindById(cid); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "course not found",
+				})
+
+				return
+			}
+
+			if err := course.UpdateDisableStatus(true); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+
+				return
+			}
+
+			c.JSON(http.StatusOK, course)
+		})
+		adminroutesGroup.POST("/course/enable/:cid", func(c *gin.Context) {
+			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "cid invalid",
+				})
+				return
+			}
+
+			var course models.Course
+			if err := course.FindById(cid); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "course not found",
+				})
+
+				return
+			}
+
+			if err := course.UpdateDisableStatus(false); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+
+				return
+			}
+
+			c.JSON(http.StatusOK, course)
+		})
 	}
 }

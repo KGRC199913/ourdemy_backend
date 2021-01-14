@@ -508,7 +508,7 @@ func UserRoutes(route *gin.Engine) {
 			}
 
 			c.JSON(http.StatusOK, gin.H{
-				"message": "added to fav list",
+				"cid": cid,
 			})
 		})
 
@@ -550,7 +550,33 @@ func UserRoutes(route *gin.Engine) {
 				})
 			}
 
+			if res == nil {
+				res = []extremeSimpleCourse{}
+			}
+
 			c.JSON(http.StatusOK, res)
 		})
+
+		userRoutesGroup.GET("/regList", middlewares.Authenticate, func(c *gin.Context) {
+			uid, ok := c.Get("id")
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "id missing? wtf",
+				})
+				return
+			}
+
+			res, err := models.GetRegByUid(uid.(primitive.ObjectID))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "something went wrong",
+				})
+
+				return
+			}
+
+			c.JSON(http.StatusOK, res)
+		})
+
 	}
 }
