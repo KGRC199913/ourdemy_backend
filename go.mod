@@ -9,6 +9,8 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/oliamb/cutter v0.2.2
 	github.com/qiniu/qmgo v0.9.1
+	github.com/sendgrid/rest v2.6.2+incompatible // indirect
+	github.com/sendgrid/sendgrid-go v3.7.2+incompatible
 	github.com/spf13/viper v1.7.1
 	github.com/thanhpk/randstr v1.0.4
 	go.mongodb.org/mongo-driver v1.4.0
