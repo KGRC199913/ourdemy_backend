@@ -25,8 +25,17 @@ func (wl *WatchList) FindByUid(uid primitive.ObjectID) error {
 	return db.Collection(wl.collName()).Find(ctx, bson.M{"uid": uid}).One(wl)
 }
 
+func appendIfMissing(slice []primitive.ObjectID, i primitive.ObjectID) []primitive.ObjectID {
+	for _, ele := range slice {
+		if ele == i {
+			return slice
+		}
+	}
+	return append(slice, i)
+}
+
 func (wl *WatchList) AddCourseToWatchList(cid primitive.ObjectID) error {
-	wl.CoursesId = append(wl.CoursesId, cid)
+	wl.CoursesId = appendIfMissing(wl.CoursesId, cid)
 
 	return db.Collection(wl.collName()).UpdateOne(ctx, bson.M{
 		"_id": wl.Id,

@@ -118,6 +118,11 @@ func LecturerAuthenticate(c *gin.Context) {
 func UrlAuthenticate(c *gin.Context) {
 	authToken := c.Query("auth")
 
+	if authToken == "none" {
+		c.Next()
+		return
+	}
+
 	var userClaims ultis.UserClaims
 	token, err := ultis.ParseToken(authToken, &userClaims)
 

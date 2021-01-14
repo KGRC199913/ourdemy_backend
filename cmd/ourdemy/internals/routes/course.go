@@ -21,6 +21,59 @@ func CourseRoutes(route *gin.Engine) {
 
 	courseRoutesGroup := route.Group("/course")
 	{
+		courseRoutesGroup.GET("/all", func(c *gin.Context) {
+			res, err := models.GetAllCourseAsSimple()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+
+				return
+			}
+
+			c.JSON(http.StatusOK, res)
+		})
+		courseRoutesGroup.GET("/all/cat/:cat_id", func(c *gin.Context) {
+			catId, err := primitive.ObjectIDFromHex(c.Param("cat_id"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "cat id invalid",
+				})
+				return
+			}
+
+			res, err := models.GetAllCourseByCatIdAsSimple(catId)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+
+				return
+			}
+
+			c.JSON(http.StatusOK, res)
+		})
+		courseRoutesGroup.GET("/all/subcat/:subcat_id", func(c *gin.Context) {
+			subcatId, err := primitive.ObjectIDFromHex(c.Param("subcat_id"))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "cat id invalid",
+				})
+				return
+			}
+
+			res, err := models.GetAllCourseBySubcatIdAsSimple(subcatId)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": err.Error(),
+				})
+
+				return
+			}
+
+			c.JSON(http.StatusOK, res)
+		})
+
 		courseRoutesGroup.GET("/chapter/:cid", func(c *gin.Context) {
 			cid, err := primitive.ObjectIDFromHex(c.Param("cid"))
 			if err != nil {

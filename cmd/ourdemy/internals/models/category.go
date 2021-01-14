@@ -85,21 +85,30 @@ func GetAllCategory() ([]Category, error) {
 	return cats, nil
 }
 
-func GetAllMostRegisterCategory() (cats []Category, err error) {
-	var res []Category
+func appendIfMissingSubcat(slice []SubCategory, i SubCategory) []SubCategory {
+	for _, ele := range slice {
+		if ele.Id == i.Id {
+			return slice
+		}
+	}
+	return append(slice, i)
+}
+
+func GetAllMostRegisterCategory() ([]SubCategory, error) {
+	var res []SubCategory
 	var courses []Course
-	courses, err = GetTop10MostRegisterCourse()
-	if err == nil {
-		return []Category{}, err
+	courses, err := GetTop10MostRegisterCourse()
+	if err != nil {
+		return []SubCategory{}, err
 	}
 
-	var tempCat Category
 	for _, course := range courses {
-		err = db.Collection(Category{}.collName()).Find(ctx, bson.M{"_id": course.CatId}).One(&tempCat)
-		if err == nil {
-			return []Category{}, err
+		var tempCat SubCategory
+		err = tempCat.FindSubCategoryById(course.CatId)
+		if err != nil {
+			return []SubCategory{}, err
 		}
-		res = append(res, tempCat)
+		res = appendIfMissingSubcat(res, tempCat)
 	}
 	return res, err
 }

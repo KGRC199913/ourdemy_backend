@@ -2,7 +2,6 @@ package routes
 
 import (
 	"errors"
-	"fmt"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/middlewares"
 	"github.com/KGRC199913/ourdemy_backend/cmd/ourdemy/internals/models"
 	"github.com/gin-gonic/gin"
@@ -46,17 +45,6 @@ func VideoRoutes(route *gin.Engine) {
 		authenVidRoutesGroup := videoRoutesGroup.Group("/", middlewares.UrlAuthenticate)
 		{
 			authenVidRoutesGroup.GET("/download/:vid", func(c *gin.Context) {
-				uid, exist := c.Get("id")
-				if !exist {
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"error": errors.New("something went wrong"),
-					})
-					return
-				}
-
-				ouid := uid.(primitive.ObjectID)
-				fmt.Println(ouid)
-
 				vid, err := primitive.ObjectIDFromHex(c.Param("vid"))
 				if err != nil {
 					c.JSON(http.StatusBadRequest, gin.H{
@@ -73,13 +61,34 @@ func VideoRoutes(route *gin.Engine) {
 					return
 				}
 
-				//TEMP DISABLE FOR THE SAKE OF TESTING
-				//if !models.IsUserJoined(vm.CourseId, ouid) {
-				//	c.JSON(http.StatusForbidden, gin.H{
-				//		"error": errors.New("didn't join this course"),
-				//	})
-				//	return
-				//}
+				var chap models.CourseChapter
+				if err := chap.FindById(vm.ChapterId); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "something went wrong",
+					})
+					return
+				}
+
+				if *chap.Previewable {
+					c.File("vid/" + vm.Id.Hex())
+					return
+				}
+
+				uid, exist := c.Get("id")
+				if !exist {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": errors.New("something went wrong"),
+					})
+					return
+				}
+
+				ouid := uid.(primitive.ObjectID)
+				if !models.IsUserJoined(vm.CourseId, ouid) {
+					c.JSON(http.StatusForbidden, gin.H{
+						"error": errors.New("didn't join this course"),
+					})
+					return
+				}
 
 				c.File("vid/" + vm.Id.Hex())
 			})
