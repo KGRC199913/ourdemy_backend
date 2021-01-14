@@ -19,6 +19,11 @@ type courseJoinInfo struct {
 	UserId   primitive.ObjectID `json:"uid" bson:"uid"`
 }
 
+type XSimpleCourse struct {
+	CourseId   primitive.ObjectID `json:"cid"`
+	CourseName string             `json:"course_name"`
+}
+
 func (regCourse) collName() string {
 	return "reg_course"
 }
@@ -83,6 +88,39 @@ func IsUserJoined(cid primitive.ObjectID, uid primitive.ObjectID) bool {
 	}
 
 	return false
+}
+
+func GetRegByUid(uid primitive.ObjectID) ([]XSimpleCourse, error) {
+	var data []regCourse
+	err := db.Collection(regCourse{}.collName()).Find(ctx, bson.M{}).All(&data)
+	if err != nil {
+		return []XSimpleCourse{}, err
+	}
+
+	var res []XSimpleCourse
+	for _, r := range data {
+		for _, join := range r.JoinInfo {
+			if join.UserId == uid {
+				var course Course
+				if err := course.FindById(r.CourseId); err != nil {
+					return nil, err
+				}
+
+				res = append(res, XSimpleCourse{
+					CourseId:   r.CourseId,
+					CourseName: course.Name,
+				})
+
+				break
+			}
+		}
+	}
+
+	if res == nil {
+		res = []XSimpleCourse{}
+	}
+
+	return res, nil
 }
 
 // Hooks

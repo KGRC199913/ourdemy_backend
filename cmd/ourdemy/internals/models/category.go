@@ -110,6 +110,10 @@ func GetAllMostRegisterCategory() ([]SubCategory, error) {
 		}
 		res = appendIfMissingSubcat(res, tempCat)
 	}
+
+	if res == nil {
+		res = []SubCategory{}
+	}
 	return res, err
 }
 

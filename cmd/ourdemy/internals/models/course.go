@@ -25,6 +25,7 @@ type Course struct {
 	IsDone             bool               `json:"is_done" bson:"is_done"`
 	RegCount           int                `json:"reg_count" bson:"reg_count"`
 	WatchCount         int                `json:"watch_count" bson:"watch_count"`
+	Disabled           bool               `json:"disabled" bson:"disabled"`
 }
 
 type CourseChapter struct {
@@ -52,7 +53,9 @@ type SimpleCourse struct {
 	ReviewScore  float32 `json:"review_score"`
 	Ava          string  `json:"ava"`
 	CurrentPrice float64 `json:"current_price"`
+	IsDiscount   bool    `json:"is_discount"`
 	IsDone       bool    `json:"is_done"`
+	ReviewCount  int64   `json:"review_count"`
 }
 
 type FullCourse struct {
@@ -71,6 +74,8 @@ type FullCourse struct {
 	FullDesc      string          `json:"full_desc" bson:"full_desc"`
 	IsDone        bool            `json:"is_done"`
 	Chapters      []CourseChapter `json:"chapters"`
+	ReviewCount   int64           `json:"review_count"`
+	Disabled      bool            `json:"disabled"`
 }
 
 func (Course) collName() string {
@@ -138,9 +143,18 @@ func FindByLecId(lid primitive.ObjectID) ([]Course, error) {
 	return res, err
 }
 
-func GetAllCourse() ([]Course, error) {
+func GetAllCourse(excludeDisabled bool) ([]Course, error) {
 	var res []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).All(&res)
+	var err error
+	if excludeDisabled {
+		err = db.Collection(Course{}.collName()).Find(ctx, bson.M{
+			"disabled": bson.M{
+				"$ne": true,
+			},
+		}).All(&res)
+	} else {
+		err = db.Collection(Course{}.collName()).Find(ctx, bson.M{}).All(&res)
+	}
 
 	if res == nil {
 		res = []Course{}
@@ -149,7 +163,7 @@ func GetAllCourse() ([]Course, error) {
 }
 
 func GetAllCourseAsSimple() ([]SimpleCourse, error) {
-	c, err := GetAllCourse()
+	c, err := GetAllCourse(true)
 
 	if err != nil {
 		return nil, err
@@ -178,7 +192,9 @@ func GetAllCourseAsSimple() ([]SimpleCourse, error) {
 
 func GetAllCourseBySubcatIdAsSimple(subcatId primitive.ObjectID) ([]SimpleCourse, error) {
 	var res []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subcatId}).All(&res)
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subcatId, "disabled": bson.M{
+		"$ne": true,
+	}}).All(&res)
 
 	if res == nil {
 		res = []Course{}
@@ -210,7 +226,11 @@ func GetAllCourseByCatIdAsSimple(catId primitive.ObjectID) ([]SimpleCourse, erro
 
 	var courses []Course
 	for _, subCat := range subCats {
-		err := db.Collection(Course{}.collName()).Find(ctx, bson.M{"cat_id": subCat.Id}).All(&courses)
+		err := db.Collection(Course{}.collName()).Find(ctx,
+			bson.M{"cat_id": subCat.Id,
+				"disabled": bson.M{
+					"$ne": true,
+				}}).All(&courses)
 		if err != nil {
 			return nil, err
 		}
@@ -239,7 +259,7 @@ func GetAllCourseByCatIdAsSimple(catId primitive.ObjectID) ([]SimpleCourse, erro
 }
 
 func GetAllCourseAsFull() ([]FullCourse, error) {
-	c, err := GetAllCourse()
+	c, err := GetAllCourse(false)
 
 	if err != nil {
 		return nil, err
@@ -268,7 +288,11 @@ func GetAllCourseAsFull() ([]FullCourse, error) {
 
 func GetTop10NewestCourse() ([]SimpleCourse, error) {
 	var courses []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-createAt").Limit(10).All(&courses)
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{
+		"disabled": bson.M{
+			"$ne": true,
+		},
+	}).Sort("-createAt").Limit(10).All(&courses)
 
 	if courses == nil {
 		courses = []Course{}
@@ -289,7 +313,11 @@ func GetTop10NewestCourse() ([]SimpleCourse, error) {
 
 func GetTop10MostWatchCourse() ([]SimpleCourse, error) {
 	var courses []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-watch_count").Limit(10).All(&courses)
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{
+		"disabled": bson.M{
+			"$ne": true,
+		},
+	}).Sort("-watch_count").Limit(10).All(&courses)
 	if courses == nil {
 		courses = []Course{}
 	}
@@ -308,7 +336,11 @@ func GetTop10MostWatchCourse() ([]SimpleCourse, error) {
 
 func GetTop4HighlightCourse() ([]SimpleCourse, error) {
 	var courses []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).All(&courses)
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{
+		"disabled": bson.M{
+			"$ne": true,
+		},
+	}).All(&courses)
 
 	var res []SimpleCourse
 	for _, course := range courses {
@@ -324,12 +356,21 @@ func GetTop4HighlightCourse() ([]SimpleCourse, error) {
 		res = []SimpleCourse{}
 	}
 
-	return res[0:4], err
+	end := 4
+	if len(res) < 4 {
+		end = len(res)
+	}
+
+	return res[0:end], err
 }
 
 func GetTop10MostRegisterCourse() ([]Course, error) {
 	var courses []Course
-	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{}).Sort("-reg_count").Limit(10).All(&courses)
+	err := db.Collection(Course{}.collName()).Find(ctx, bson.M{
+		"disabled": bson.M{
+			"$ne": true,
+		},
+	}).Sort("-reg_count").Limit(10).All(&courses)
 	if courses == nil {
 		courses = []Course{}
 	}
@@ -360,6 +401,17 @@ func (c *Course) UpdateCourseDesc(short string, full string) error {
 		"$set": bson.M{
 			"short_desc": short,
 			"full_desc":  full,
+		},
+	})
+}
+
+func (c *Course) UpdateDisableStatus(disabled bool) error {
+	c.Disabled = disabled
+	return db.Collection(c.collName()).UpdateOne(ctx, bson.M{
+		"_id": c.Id,
+	}, bson.M{
+		"$set": bson.M{
+			"disabled": disabled,
 		},
 	})
 }
@@ -417,7 +469,18 @@ func SearchByKeyword(keyword string, limit int64, offset int64) ([]Course, error
 		res = []Course{}
 	}
 
-	return paginateCourse(res, offset, limit), err
+	var filteredRes []Course
+	for _, course := range res {
+		if !course.Disabled {
+			filteredRes = append(filteredRes, course)
+		}
+	}
+
+	if filteredRes == nil {
+		filteredRes = []Course{}
+	}
+
+	return paginateCourse(filteredRes, offset, limit), err
 }
 
 func FindByCatId(cid primitive.ObjectID, limit int64, offset int64) ([]Course, error) {
@@ -498,6 +561,8 @@ func (c *Course) ConvertToSimpleCourse() (*SimpleCourse, error) {
 		return nil, err
 	}
 
+	rvc, err := CountReviewByCourseId(c.Id)
+
 	return &SimpleCourse{
 		Id:           c.Id.String(),
 		Title:        c.Name,
@@ -507,8 +572,10 @@ func (c *Course) ConvertToSimpleCourse() (*SimpleCourse, error) {
 		Lecturer:     lecturer.Fullname,
 		ReviewScore:  reviewScore,
 		Ava:          c.Ava,
-		CurrentPrice: c.Fee * c.Discount,
+		CurrentPrice: c.Fee * (1.0 - c.Discount),
 		IsDone:       c.IsDone,
+		IsDiscount:   c.Discount < 0.0001,
+		ReviewCount:  rvc,
 	}, nil
 }
 
@@ -548,6 +615,8 @@ func (c *Course) ConvertToFullCourse() (*FullCourse, error) {
 		}
 	}
 
+	rvc, err := CountReviewByCourseId(c.Id)
+
 	return &FullCourse{
 		Id:            c.Id.String(),
 		Title:         c.Name,
@@ -564,6 +633,7 @@ func (c *Course) ConvertToFullCourse() (*FullCourse, error) {
 		FullDesc:      c.FullDesc,
 		IsDone:        c.IsDone,
 		Chapters:      chapters,
+		ReviewCount:   rvc,
 	}, nil
 }
 

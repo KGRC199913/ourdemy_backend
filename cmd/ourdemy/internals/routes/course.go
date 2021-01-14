@@ -593,7 +593,7 @@ func CourseRoutes(route *gin.Engine) {
 						ShortDesc:    courseInfo.ShortDesc,
 						FullDesc:     courseInfo.FullDesc,
 						Fee:          courseInfo.Fee,
-						Discount:     1.0,
+						Discount:     0.0,
 						ChapterCount: 0,
 					}
 

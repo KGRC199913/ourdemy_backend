@@ -59,6 +59,10 @@ func FindByCourseId(cid primitive.ObjectID) ([]Review, error) {
 	return revs, nil
 }
 
+func CountReviewByCourseId(cid primitive.ObjectID) (int64, error) {
+	return db.Collection(Review{}.collName()).Find(ctx, bson.M{"cid": cid}).Count()
+}
+
 func (rv *Review) ConvertToDisplayableReview() (*DisplayableReview, error) {
 	var u User
 	if err := u.FindById(rv.UserId); err != nil {
