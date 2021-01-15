@@ -634,6 +634,7 @@ func (c *Course) ConvertToFullCourse() (*FullCourse, error) {
 		IsDone:        c.IsDone,
 		Chapters:      chapters,
 		ReviewCount:   rvc,
+		Disabled:      c.Disabled,
 	}, nil
 }
 
