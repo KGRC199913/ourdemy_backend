@@ -2,6 +2,11 @@ module github.com/KGRC199913/ourdemy_backend
 
 go 1.15
 
+// Retract all previous versions, plus this new version itself
+retract (
+    [v1.0.0, v1.0.1]
+)
+
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/elithrar/simple-scrypt v1.3.0
